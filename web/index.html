@@ -269,6 +269,25 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   .hd h1 b{font-size:28px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* особистий кабінет (демо-вхід) */
+.auth{position:fixed;inset:0;z-index:90;background:var(--app,var(--panel));display:flex;align-items:center;justify-content:center;padding:24px max(20px,env(safe-area-inset-right,0px)) 24px max(20px,env(safe-area-inset-left,0px));animation:fade .25s both;overflow-y:auto}
+.auth.closing{animation:fadeout .25s both}
+.authbox{width:min(380px,100%);display:flex;flex-direction:column;gap:14px;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+.authbox .logo{width:56px;height:56px;border-radius:16px}
+.authbox h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.authbox p{margin:0;color:var(--muted);font-size:13.5px}
+.authbox .f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted)}
+.authbox .f input{font:inherit;font-size:18px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;width:100%}
+.authbox .f input.code{letter-spacing:.5em;text-align:center;font-size:24px}
+.authbox .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.authbox .dots{display:flex;gap:6px}.authbox .dots i{flex:1;height:4px;border-radius:99px;background:var(--line)}.authbox .dots i.on{background:var(--accent)}
+.authbox .back{border:0;background:none;color:var(--muted);font-size:13px;text-align:left;padding:0}
+.authbox .demo{font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 11px}
+.avatar{cursor:pointer;border:1px solid var(--line);font-family:inherit;color:var(--ink)}
+.profrow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.profrow:first-of-type{border-top:0}.profrow span{color:var(--muted)}
+.profhead{display:flex;gap:12px;align-items:center}.profhead .avatar{width:52px;height:52px;font-size:16px;cursor:default}
 </style>
 </head>
 <body>
@@ -285,11 +304,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   </aside>
   <main class="main">
     <header class="hd">
-      <div><h1>Привіт,<b>Олено.</b></h1><p id="hd-sub"></p></div>
+      <div><h1>Привіт,<b data-hello=".">Олено.</b></h1><p id="hd-sub"></p></div>
       <div class="hd-r"><span class="datechip" id="date"></span>
         <button class="btn accent sm" id="pay-top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg>Вхідний платіж</button>
         <button class="icbtn" id="bell" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="badge" id="badge" hidden></span></button>
-        <span class="avatar" aria-label="Олена Коваль">ОК</span></div>
+        <button class="avatar" data-avatar aria-label="Профіль">ОК</button></div>
     </header>
     <div id="view"></div>
   </main>
@@ -323,26 +342,32 @@ const ENVS=[
   {k:'self',n:'Собі',             c:'var(--ok)',    goal:0,     gl:'можна вивести без попередження'},
 ];
 const SALES_DAY=13000;
-const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:13,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
+const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:14,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
 const OD_RATE=.24,OD_SHARE=.30;
 const DEF={group:'3',pct:{buy:50,ops:12,mkt:15,res:5},bal:{tax:51426,buy:38400,ops:18880,mkt:9600,res:12000,self:6800},
   tx:[{src:'Checkbox',t:'Каса в магазині, 3 чеки',a:4180,ago:'сьогодні 12:40'},{src:'NovaPay',t:'Кросівки «Ран», 41',a:3100,ago:'сьогодні 11:05'},{src:'Нова пошта',t:'Післяплата, ТТН 2045…118',a:2800,ago:'сьогодні 09:52'},{src:'LiqPay',t:'Лофери «Ліра», 37',a:2800,ago:'вчора 21:17'}],
-  od:0,done:{},alert:false};
+  od:0,debt:0,unalloc:0,done:{},alert:false};
 let S;
 const load=()=>{try{const j=JSON.parse(localStorage.getItem('fk-state')||'null');if(j&&j.v===3)return j.s}catch(e){}return null};
 const save=()=>{try{localStorage.setItem('fk-state',JSON.stringify({v:3,s:S}))}catch(e){}};
 S=load()||JSON.parse(JSON.stringify(DEF));
-addEventListener('storage',e=>{if(e.key==='fk-state'){const n=load();if(n){S=n;render(false)}}});   // зміни з мобільної версії в іншій вкладці
+S.unalloc=S.unalloc||0;if(S.debt===undefined)S.debt=S.od||0;
+addEventListener('storage',e=>{if(e.key==='fk-state'){const n=load();if(n){S=n;S.unalloc=S.unalloc||0;if(S.debt===undefined)S.debt=S.od||0;render(false);if(typeof paintUser==='function')paintUser()}}});   // зміни з мобільної версії в іншій вкладці
 const taxPct=g=>(g||S.group)==='3'?6:(g||S.group)==='3v'?4:0;
 const selfPct=()=>100-taxPct()-S.pct.buy-S.pct.ops-S.pct.mkt-S.pct.res;
 const pctOf=k=>k==='tax'?taxPct():k==='self'?Math.max(0,selfPct()):S.pct[k];
-const total=()=>Object.values(S.bal).reduce((a,b)=>a+b,0);
-function forecast(){
-  const inflow=SALES_DAY*S.pct.ops/100;let b=S.bal.ops;const days=[];
-  for(let i=0;i<30;i++){const pays=OPS_PAYS.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);b=low+inflow;days.push({i,low,end:b,pays})}
+const total=()=>Object.values(S.bal).reduce((a,b)=>a+b,0)+(S.unalloc||0);   // усе, що лежить на рахунку ФОП: конверти + ще не розподілене
+const repayOf=a=>Math.min(S.debt||0,Math.round(a*OD_SHARE));            // погашення овердрафту списується до поділу по конвертах
+function forecast(x){x=x||{};
+  const k=S.pct.ops/100;let debt=(S.debt||0)+(x.debt||0);const pend=(S.unalloc||0)-repayOf(S.unalloc||0);debt-=repayOf(S.unalloc||0);
+  let b=S.bal.ops+pend*k+(x.ops||0);const days=[];let inflow0=null;
+  for(let i=0;i<30;i++){const pays=OPS_PAYS.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
+    const rp=Math.min(debt,SALES_DAY*OD_SHARE);debt-=rp;const inflow=(SALES_DAY-rp)*k;if(inflow0===null)inflow0=inflow;b=low+inflow;days.push({i,low,end:b,pays})}
+  const inflow=inflow0;
   const g=days.find(d=>d.low<0);   // овердрафт береться рівно на дефіцит першого розриву (специфікація команди)
   return{days,gap:g?{i:g.i,need:-g.low,first:-g.low,pay:g.pays[0]}:null,inflow};
 }
+const odAmount=g=>{let X=Math.ceil(g.need/100)*100;for(let i=0;i<200;i++){const f=forecast({ops:X,debt:X});if(f.days[g.i].low>=0)return X;X+=100}return X};
 const odDays=a=>Math.max(1,Math.ceil(a/(SALES_DAY*OD_SHARE)));
 
 /* ======================================================================
@@ -389,7 +414,8 @@ function render(anim){
 const WEEK=[21380,18940,25300,19870,23410,31200];
 function donut(){
   const W=420,H=330,cx=210,cy=165,r=92,tot=total()||1;let off=0,segs='';const lab=[];
-  ENVS.forEach(e=>{const v=S.bal[e.k],p=v/tot*100;segs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${e.c}" stroke-width="20" pathLength="100" stroke-dasharray="${Math.max(0,p-1.2)} 100" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>`;
+  const PARTS=ENVS.concat(S.unalloc>0?[{k:'_u',n:'Не розподілено',c:'var(--pending)'}]:[]);
+  PARTS.forEach(e=>{const v=e.k==='_u'?S.unalloc:S.bal[e.k],p=v/tot*100;segs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${e.c}" stroke-width="20" pathLength="100" stroke-dasharray="${Math.max(0,p-1.2)} 100" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>`;
     const mid=(off+p/2)/100*2*Math.PI-Math.PI/2;lab.push({e,v,mid});off+=p});
   // три найбільші конверти отримують виноски з лініями, щоб нічого не накладалось
   const top=[...lab].sort((a,b)=>b.v-a.v).slice(0,3);const used={};
@@ -406,12 +432,12 @@ function overHTML(){
   const f=forecast(),g=f.gap,week=WEEK.concat([S.todaySales||14760]),mx=Math.max(...week);
   return `<div class="g-over">
    <div class="card a-hero" style="background:transparent;border:0;padding:4px 4px 0;overflow:visible" id="c-hero"><div class="glow"></div><div class="ct">Гроші бізнесу по конвертах<button class="btn ghost sm" data-go="env">Конверти</button></div>${donut()}
-     <p class="small" style="margin:0;max-width:34ch">Кожне надходження автоматично ділиться за вашими відсотками. Вивести без попередження можна тільки конверт «Собі».</p></div>
-   <div class="card green a-self" id="c-self">${rings('var(--accent)')}<div class="ct">Можна витратити на себе</div><div class="big num"><span id="self">${fmtn(S.bal.self)}</span><small>₴</small></div><span class="chip">конверт «Собі», ${pctOf('self')}% з надходжень</span><div class="small" style="margin-top:auto">Гроші на оренду, податки й закупівлю лежать окремо і випадково не зникнуть.</div></div>
+     <p class="small" style="margin:0;max-width:36ch">Гроші лежать на вашому рахунку ФОП, конверти ділять їх віртуально. Нові надходження спершу видно загальною сумою, а кнопка «Поділити по конвертах» розкладає їх за відсотками.</p></div>
+   <div class="card green a-self" id="c-self">${rings('var(--accent)')}<div class="ct">Можна витратити на себе</div><div class="big num"><span id="self">${fmtn(S.bal.self)}</span><small>₴</small></div>${g?`<span class="chip crit" style="white-space:normal">є касовий розрив ${dm(g.i)}: краще не виводити</span>`:`<span class="chip">конверт «Собі», ${pctOf('self')}% з надходжень</span>`}<div class="small" style="margin-top:auto">Гроші на оренду, податки й закупівлю лежать окремо і випадково не зникнуть.</div></div>
    ${g?`<div class="card pink a-gap" id="c-gap">${rings('var(--crit)')}<div class="ct">Платіжний радар<span class="chip crit"><span class="dot"></span>${inDays(g.i)}</span></div>
        <div class="small">${g.pay.t} ${fmt(g.pay.a)}, ${wd(g.i)} ${dm(g.i)}. У конверті «Операційні» зараз ${fmt(S.bal.ops)}.</div>
        <button class="btn crit sm" id="run-radar" style="margin-top:auto">${ic('bolt')}Запустити радар</button></div>`
-     :`<div class="card green a-gap" id="c-gap">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">розривів немає</span></div><div class="big">0<small>розривів</small></div><div class="small" style="margin-top:auto">${S.od?`Овердрафт ${fmt(S.od)} гаситься сам: ${OD_SHARE*100}% з кожного надходження.`:'На 30 днів уперед усі платежі покриті.'}</div></div>`}
+     :`<div class="card green a-gap" id="c-gap">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">розривів немає</span></div><div class="big">0<small>розривів</small></div><div class="small" style="margin-top:auto">${S.debt>0?`Борг за овердрафтом ${fmt(S.debt)}: ${OD_SHARE*100}% кожного надходження йде на погашення до поділу по конвертах.`:'На 30 днів уперед усі платежі покриті.'}</div></div>`}
    <div class="card a-ops" id="c-ops"><div class="ct">Конверт «Операційні»<button class="btn ghost sm" data-go="radar">Радар</button></div><div class="big num">${fmtn(S.bal.ops)}<small>₴</small></div><div class="unit">прогноз на 14 днів</div>${spark(f)}</div>
    <div class="card a-sales"><div class="ct">Продажі за тиждень<span class="chip">+8%</span></div><div class="big num" style="font-size:32px">${fmtn(week.reduce((a,b)=>a+b,0))}<small>₴</small></div>
      <div class="bars">${week.map((v,i)=>`<i class="${i===6?'today':''}" style="height:${(v/mx*100).toFixed(0)}%;animation-delay:${i*50}ms" title="${fmt(v)}"></i>`).join('')}</div><div class="days">${week.map((v,i)=>`<span>${i===6?'сьогодні':wd(i-6)}</span>`).join('')}</div></div>
@@ -420,6 +446,7 @@ function overHTML(){
    <div class="card peach a-cb"><div class="ct">Каса Checkbox${ic('receipt')}</div><div class="big num" style="font-size:34px">14<small>чеків сьогодні</small></div>
      <div class="minilist"><div><span>Готівка</span>6 140 ₴</div><div><span>Картка (термінал)</span>15 240 ₴</div><div><span>Середній чек</span>1 527 ₴</div><div><span>Разом</span><b>21 380 ₴</b></div></div></div>
    <div class="card a-envs"><div class="ct">Конверти<button class="btn accent sm" id="pay-over">${ic('card')}Вхідний платіж</button></div>
+     ${S.unalloc>0?`<div class="row" style="background:var(--blue-soft);border-radius:12px;padding:9px 12px"><span><b class="num">+${fmt(S.unalloc)}</b> <span class="small">на рахунку, ще не розподілено</span></span><button class="btn accent sm" id="split-over">Поділити по конвертах</button></div>`:''}
      <div class="envrow">${ENVS.map(e=>`<button class="envmini" data-go="env"><span class="t"><span class="dotc" style="background:${e.c}"></span>${e.n} · ${pctOf(e.k)}%</span><b class="num">${fmtn(S.bal[e.k])}</b>${e.goal?`<span class="bar"><i style="width:${Math.min(100,S.bal[e.k]/e.goal*100)}%;background:${e.c}"></i></span>`:'<span class="small" style="font-size:11px">вільні гроші</span>'}</button>`).join('')}</div></div>
    <div class="card a-tx"><div class="ct">Останні надходження<button class="btn ghost sm" data-go="ops">Усі</button></div>
      <div class="list">${S.tx.slice(0,4).map((x,j)=>`<div class="li${x.fresh&&j===0?' new':''}">${srcIc(x.src)}<div><div class="t">${x.t}</div><div class="s">${x.src} · ${x.ago}</div></div><span class="amt in">+${fmt(x.a)}</span></div>`).join('')}</div></div>
@@ -427,12 +454,19 @@ function overHTML(){
 }
 function overAfter(){countUp($('tot'),total(),'tot');countUp($('self'),S.bal.self,'self');
   document.querySelectorAll('#view [data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
-  const r=$('run-radar');if(r)r.onclick=()=>{go('radar');setTimeout(runRadar,350)};$('pay-over').onclick=()=>go('env');}
+  const r=$('run-radar');if(r)r.onclick=()=>{go('radar');setTimeout(runRadar,350)};$('pay-over').onclick=()=>go('env');const so=$('split-over');if(so)so.onclick=()=>{go('env');setTimeout(splitNow,500)};}
 
 /* ---------- КОНВЕРТИ: відсотки + платіж + конверти ---------- */
 let draft=null;
+function pendingHTML(){
+  if(!(S.unalloc>0))return '';const rp=repayOf(S.unalloc),last=S.tx.find(x=>x.src!=='Raiffeisen');
+  return `<div class="card blue" id="c-pending">${rings('var(--blue)')}<div class="ct">На рахунку, ще не розподілено<span class="sub">крок 4</span></div>
+    <div class="big num" style="font-size:34px">+${fmtn(S.unalloc)}<small>₴</small></div>
+    <div class="small">${last?`Останнє: ${last.t}, ${last.src}. `:''}${rp?`Спершу ${fmt(rp)} (${OD_SHARE*100}%) піде на погашення овердрафту, решта ${fmt(S.unalloc-rp)} розкладеться за відсотками.`:'Гроші вже на рахунку ФОП. Натисніть, і вони розкладуться за вашими відсотками.'}</div>
+    <button class="btn accent" id="split-now" style="align-self:flex-start">Поділити по конвертах</button></div>`;
+}
 function envHTML(){
-  draft={group:S.group,pct:{...S.pct}};
+  draft={group:S.group,pct:{...S.pct}};const gp=forecast().gap;
   return `<div class="g-env">
    <div class="col">
     <div class="card" id="c-pct"><div class="ct">Розподіл кожного надходження<span class="sub">крок 2 сценарію</span></div>
@@ -451,17 +485,18 @@ function envHTML(){
       <p class="note" id="pay-status"></p></div>
    </div>
    <div class="col">
-    <div id="paybox"></div>
+    <div id="paybox">${pendingHTML()}</div>
     <div class="envgrid" id="envgrid">${ENVS.map(e=>`<div class="env" id="env-${e.k}"><span class="plus" id="plus-${e.k}"></span>
       <div class="top"><span class="nm"><span class="dotc" style="background:${e.c}"></span>${e.n}</span><span class="pc" id="pc-${e.k}">${pctOf(e.k)}%</span></div>
       <b class="num"><span id="bal-${e.k}">${fmtn(S.bal[e.k])}</span> <span class="small">₴</span></b>
       ${e.goal?`<span class="bar"><i id="bar-${e.k}" style="width:${Math.min(100,S.bal[e.k]/e.goal*100)}%;background:${e.c}"></i></span><span class="small">${fmtn(S.bal[e.k])} з ${fmtn(e.goal)} ₴</span>`:''}
-      <span class="gl">${e.gl}</span></div>`).join('')}</div>
+      <span class="gl"${e.k==='self'&&gp?' style="color:var(--crit)"':''}>${e.k==='self'&&gp?`Є касовий розрив ${dm(gp.i)}: краще не виводити, поки його не закрито`:e.gl}</span></div>`).join('')}</div>
    </div></div>`;
 }
 const PRODUCTS=[['Туфлі «Мія», 38',2400],['Кросівки «Ран», 41',3100],['Лофери «Ліра», 37',2800],['Черевики «Зима», 39',3600]];
 const nextProduct=()=>PRODUCTS[S.tx.filter(x=>x.fresh&&x.src!=='Raiffeisen').length%PRODUCTS.length];
 function envAfter(){
+  const sn=$('split-now');if(sn)sn.onclick=splitNow;
   ENVS.forEach(e=>lastNum['bal-'+e.k]=S.bal[e.k]);
   const tp=()=>taxPct(draft.group),sp=()=>100-tp()-draft.pct.buy-draft.pct.ops-draft.pct.mkt-draft.pct.res;
   const upd=()=>{const t=tp(),s=sp();
@@ -480,16 +515,22 @@ function envAfter(){
   $('pay-wfp').onclick=()=>payWFP(amt(),nextProduct()[0]);
 }
 function handlePayment(a,src,title){
-  const shares={};let used=0;ENVS.forEach(e=>{if(e.k==='self')return;shares[e.k]=Math.round(a*pctOf(e.k)/100);used+=shares[e.k]});shares.self=a-used;
-  S.tx.unshift({src,t:title,a,ago:'щойно',fresh:true});S.todaySales=(S.todaySales||14760)+a;S.done.pay=true;save();paintSteps();
-  if(page!=='env'){go('env');setTimeout(()=>flyIn(a,src,shares),450)}else flyIn(a,src,shares);
+  S.unalloc=(S.unalloc||0)+a;S.tx.unshift({src,t:title,a,ago:'щойно',fresh:true});S.todaySales=(S.todaySales||14760)+a;S.done.pay=true;save();paintSteps();
+  if(page!=='env')go('env');else{$('paybox').innerHTML=pendingHTML();const sn=$('split-now');if(sn)sn.onclick=splitNow}
+  const p=nextProduct();if($('pay-amt')){$('pay-amt').value=p[1];$('pay-prod').textContent=p[0]}
+  setTimeout(()=>{flash('c-pending');toast('+'+fmt(a)+' на рахунку')},450);
 }
-function flyIn(a,src,shares){
+function splitNow(){
+  const a=S.unalloc||0;if(!(a>0))return;const rp=repayOf(a),rest=a-rp;
+  const shares={};let used=0;ENVS.forEach(e=>{if(e.k==='self')return;shares[e.k]=Math.round(rest*pctOf(e.k)/100);used+=shares[e.k]});shares.self=rest-used;
+  S.unalloc=0;S.debt=(S.debt||0)-rp;save();flyIn(a,rp,shares);
+}
+function flyIn(a,rp,shares){
   const box=$('paybox');if(!box)return;
-  box.innerHTML=`<div class="paybanner" id="pb"><span class="coin">₴</span><div><div class="t">${src==='Імітація'?'Імітація платежу':src+' · тестова оплата'} · щойно</div><b class="num">+${fmt(a)}</b></div></div>`;
+  box.innerHTML=`<div class="paybanner" id="pb"><span class="coin">₴</span><div><div class="t">Розподіляємо по конвертах${rp?` · −${fmt(rp)} погашення овердрафту, борг ${fmt(S.debt)}`:''}</div><b class="num">${fmt(a-rp)}</b></div></div>`;
   const from=$('pb').querySelector('.coin').getBoundingClientRect();
   const keys=ENVS.filter(e=>shares[e.k]&&$('env-'+e.k)).map(e=>e.k);let left=keys.length;
-  const done=()=>{S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах');const p=nextProduct();if($('pay-amt')){$('pay-amt').value=p[1];$('pay-prod').textContent=p[0]}};if(!left){ENVS.forEach(e=>S.bal[e.k]+=shares[e.k]||0);done();return}
+  const done=()=>{S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах')};if(!left){ENVS.forEach(e=>S.bal[e.k]+=shares[e.k]||0);done();return}
   ENVS.forEach((e,j)=>{const sh=shares[e.k];const card=$('env-'+e.k);if(!sh||!card)return;const to=card.getBoundingClientRect();
     const chip=document.createElement('div');chip.className='flychip';chip.style.background=e.c;chip.textContent='+'+fmtn(sh);$('layer').appendChild(chip);
     const x0=from.left,y0=from.top,x1=to.left+to.width/2-30,y1=to.top+to.height/2-12;
@@ -539,7 +580,7 @@ function radarHTML(){
    <div class="card" id="c-chart"><div class="ct">Конверт «Операційні», прогноз на 30 днів${f.gap?'<span class="chip crit">розрив</span>':'<span class="chip">без розривів</span>'}</div>
      <div class="chartbox">${chartSVG(f)}</div><div class="legend"><span><i></i>залишок у конверті</span><span>щодня +${fmt(f.inflow)} з продажів (${S.pct.ops}% від ${fmt(SALES_DAY)})</span></div></div>
    <div class="col"><div id="radarbox">${f.gap?`<div class="card pink" id="c-radar">${rings('var(--crit)')}<div class="ct">Платіжний радар<span class="sub">крок 5</span></div><div class="small">Перевіряє 30 днів уперед: чи вистачить грошей у конверті на кожен платіж.</div><button class="btn crit" id="run">${ic('bolt')}Запустити радар</button></div>`
-      :`<div class="card green" id="c-radar">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">усе покрито</span></div><div class="small">${S.od?`Овердрафт ${fmt(S.od)} на рахунку. Гаситься сам: ${OD_SHARE*100}% з кожного надходження, приблизно за ${odDays(S.od)} дн.`:'На 30 днів уперед розривів немає.'}</div></div>`}</div>
+      :`<div class="card green" id="c-radar">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">усе покрито</span></div><div class="small">${S.debt>0?`Борг за овердрафтом ${fmt(S.debt)}. ${OD_SHARE*100}% кожного надходження спершу йде на погашення, решта ділиться по конвертах. Приблизно ${odDays(S.debt)} дн.`:S.od?'Овердрафт погашено. На 30 днів уперед розривів немає.':'На 30 днів уперед розривів немає.'}</div></div>`}</div>
     <div class="card"><div class="ct">Платежі з конверта</div><div class="list">${f.days.filter(d=>d.pays.length).map(d=>`<div class="li"><span class="ic" style="background:var(--blue-soft);color:var(--blue)">${dm(d.i).slice(0,2)}</span><div><div class="t">${d.pays[0].t}</div><div class="s">${wd(d.i)} ${dm(d.i)} · залишок після: ${fmt(d.low)}</div></div><span class="amt ${d.low<0?'neg':''}">−${fmt(d.pays[0].a)}</span></div>`).join('')}</div></div></div></div>`;
 }
 function chartSVG(f){
@@ -570,7 +611,7 @@ function runRadar(){
       <div class="small">${g.pay.t}: ${fmt(g.pay.a)}, у конверті буде ${fmt(g.pay.a-g.first)}.${g.need>g.first+1?` З урахуванням наступних платежів за місяць бракує ${fmt(g.need)}.`:''}</div>
       <button class="btn crit" id="cover">Перекрити розрив (взяти овердрафт)</button>
       <div class="small">Або перекинути гроші з конвертів «Резерв» і «Собі», або перенести платіж.</div></div>`;
-    $('cover').onclick=()=>openOD(Math.ceil(g.need/100)*100,g);flash('c-alert')},RM?10:1900);
+    $('cover').onclick=()=>openOD(odAmount(g),g);flash('c-alert')},RM?10:1900);
 }
 function showPush(g){const old=$('layer').querySelector('.push');if(old)old.remove();
   const p=document.createElement('button');p.className='push';p.innerHTML=`<span class="pi">${ic('tg',0)}</span><span><span class="h"><span>Фінансист · Telegram</span><span>зараз</span></span><span class="b">${g.pay.t} ${inDays(g.i)}: бракує ${fmt(g.need)}. Перекрити розрив?</span></span>`;
@@ -590,8 +631,8 @@ function openOD(amt,g){od={amt,g,step:1};drawOD()}
 function drawOD(){
   const days=odDays(od.amt),cost=od.amt*OD_RATE*days/365,bar=`<div class="stp">${[1,2,3,4].map(i=>`<i class="${i<=od.step?'on':''}"></i>`).join('')}</div>`;let b='';
   if(od.step===1)b=`<div class="lbl">Крок 1 з 4 · Сума</div><div class="big num">${fmtn(od.amt)}<small>₴</small></div>
-    <div class="small">${od.g.need>od.g.first+1?`Покриває розрив ${dm(od.g.i)} і всі платежі з конверта до кінця місяця`:`Рівно дефіцит на ${dm(od.g.i)}`}, округлено до сотні.</div>
-    <div class="kv"><span>Банк-партнер</span><span>Raiffeisen Bank</span><span>Продукт</span><span>Овердрафт для ФОП</span><span>Ставка (умовно)</span><span>${OD_RATE*100}% річних</span><span>Погашення</span><span>${OD_SHARE*100}% з кожного надходження</span><span>Закриється за</span><span>≈ ${days} дн.</span><span>Переплата</span><span>≈ ${fmt(cost)}</span></div>
+    <div class="small">${od.amt-od.g.need>=100?`Дефіцит на ${dm(od.g.i)} ${fmt(od.g.need)} плюс те, що до цієї дати піде на погашення (${OD_SHARE*100}% надходжень), округлено до сотні.`:`Рівно дефіцит на ${dm(od.g.i)}, округлено до сотні.`}</div>
+    <div class="kv"><span>Банк-партнер</span><span>Raiffeisen Bank</span><span>Продукт</span><span>Овердрафт для ФОП</span><span>Ставка (умовно)</span><span>${OD_RATE*100}% річних</span><span>Погашення</span><span>${OD_SHARE*100}% кожного надходження до поділу</span><span>Закриється за</span><span>≈ ${days} дн.</span><span>Переплата</span><span>≈ ${fmt(cost)}</span></div>
     <button class="btn accent" id="nx">Надіслати запит у банк</button><button class="btn ghost" id="cl">Скасувати</button>
     <p class="note">Платформа передає банку суму, ІПН і прогноз грошового потоку. Відкритого API Raiffeisen для МСБ немає, тому цей крок імітується, умови умовні.</p>`;
   if(od.step===2)b=`<div class="lbl">Крок 2 з 4 · Рішення банку</div><h3>Банк перевіряє дані з платформи</h3><div class="checks" id="checks"><div><span class="c"></span>Обороти за 8 тижнів</div><div><span class="c"></span>Регулярні платежі без прострочок</div><div><span class="c"></span>Прогноз: борг закриється за ${days} дн.</div></div>`;
@@ -602,7 +643,7 @@ function drawOD(){
   const nx=$('nx'),cl=$('cl');if(nx)nx.onclick=()=>{od.step++;if(od.step===4)finishOD();drawOD()};if(cl)cl.onclick=()=>{closeModal();if(od.step===4)render(false)};
   if(od.step===2){[...document.querySelectorAll('#checks>div')].forEach((r,j)=>{mT.push(setTimeout(()=>r.classList.add('busy'),j*550));mT.push(setTimeout(()=>{r.classList.remove('busy');r.classList.add('done');r.querySelector('.c').innerHTML='<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-6"/></svg>'},j*550+480))});mT.push(setTimeout(()=>{od.step=3;drawOD()},2000))}
 }
-function finishOD(){S.bal.ops+=od.amt;S.od+=od.amt;S.alert=false;S.done.gap=true;S.tx.unshift({src:'Raiffeisen',t:'Овердрафт, конверт «Операційні»',a:od.amt,ago:'щойно',fresh:true});save();paintSteps();$('badge').hidden=true}
+function finishOD(){S.bal.ops+=od.amt;S.od+=od.amt;S.debt=(S.debt||0)+od.amt;S.alert=false;S.done.gap=true;S.tx.unshift({src:'Raiffeisen',t:'Овердрафт, конверт «Операційні»',a:od.amt,ago:'щойно',fresh:true});save();paintSteps();$('badge').hidden=true}
 
 /* ---------- ОПЕРАЦІЇ ---------- */
 function opsHTML(){
@@ -629,16 +670,67 @@ const JS=[
   {k:'dash',t:'Відкриваємо дашборд',a(){go('over')}},
   {k:'pct', t:'Задаємо відсотки',a(){go('env');setTimeout(()=>flash('c-pct'),400)}},
   {k:'pay', t:'Вхідний платіж від клієнта',a(){go('env');setTimeout(()=>flash('c-pay'),400)}},
-  {k:'env', t:'Конверти наповнюються',a(){go('env');setTimeout(()=>flash(S.done.pay?'envgrid':'c-pay'),400)}},
+  {k:'env', t:'Ділимо по конвертах',a(){go('env');setTimeout(()=>{if(S.unalloc>0)splitNow();else flash(S.done.pay?'envgrid':'c-pay')},450)}},
   {k:'gap', t:'Касовий розрив і овердрафт',a(){go('radar');setTimeout(runRadar,350)}},
 ];
 function paintSteps(){const nx=JS.findIndex(x=>!S.done[x.k]);$('jsteps').innerHTML=JS.map((x,i)=>`<button class="jstep${S.done[x.k]?' done':''}${i===nx?' next':''}" data-j="${i}"><span class="n">${S.done[x.k]?'✓':i+1}</span><span>${x.t}</span></button>`).join('');
   $('jsteps').querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>JS[+b.dataset.j].a())}
-$('reset').onclick=()=>{S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;for(const k in lastNum)delete lastNum[k];save();closeModal();hidePush();go('over');toast('Демо скинуто')};
+$('reset').onclick=()=>{S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));S.auth=true;paintUser();for(const k in lastNum)delete lastNum[k];save();closeModal();hidePush();go('over');toast('Демо скинуто')};
 $('pay-top').onclick=()=>{go('env');setTimeout(()=>flash('c-pay'),400)};
+
+
+/* ======================================================================
+   ОСОБИСТИЙ КАБІНЕТ (демо: без сервера і паролів, дані лише в цьому браузері)
+   ====================================================================== */
+const DEF_PROFILE={name:'Олена',last:'Коваль',shop:'Крок',phone:'380670000000'};
+if(!S.profile)S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));if(S.auth===undefined)S.auth=true;
+const voc=n=>{n=(n||'').trim();if(/ій$/.test(n))return n.slice(0,-2)+'ію';if(/а$/.test(n))return n.slice(0,-1)+'о';if(/я$/.test(n))return n.slice(0,-1)+'є';return n};
+const initials=p=>(((p.name||'?')[0]||'')+((p.last||p.shop||'')[0]||'')).toUpperCase();
+const digits=s=>(s||'').replace(/\D/g,'');
+const prettyPhone=d=>{d=digits(d);if(d.length===12)return `+${d.slice(0,3)} ${d.slice(3,5)} ${d.slice(5,8)} ${d.slice(8,10)} ${d.slice(10)}`;return d?'+'+d:''};
+const GROUPS=[['12','1–2 група'],['3','3 група'],['3v','3 група з ПДВ']];
+function paintUser(){const p=S.profile||DEF_PROFILE;document.querySelectorAll('[data-hello]').forEach(el=>el.textContent=voc(p.name)+(el.dataset.hello||''));
+  document.querySelectorAll('[data-avatar]').forEach(el=>{el.textContent=initials(p);el.setAttribute('aria-label','Профіль: '+p.name+' '+(p.last||''))})}
+let authEl=null;
+function openAuth(step,edit){
+  if(!authEl){authEl=document.createElement('div');authEl.className='auth';(()=>document.body)().appendChild(authEl)}
+  authEl.classList.remove('closing');const P=S.profile||{};const dots=n=>`<div class="dots">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;
+  const logo=`<img class="logo" src="../icons/icon-192.png" alt="">`;
+  if(step==='phone')authEl.innerHTML=`<div class="authbox">${logo}${dots(1)}<h2>Вхід у Фінансист</h2><p>Особистий кабінет ФОПа: конверти, платежі й радар. Дані бачите тільки ви.</p>
+    <label class="f" for="a-phone">Номер телефону<input id="a-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 000 00 00" value="${prettyPhone(P.phone)}"></label>
+    <button class="btn accent" id="a-next" disabled>Отримати код</button><div class="demo">Демо-вхід: SMS не надсилаються, акаунти не створюються на сервері.</div></div>`;
+  if(step==='code')authEl.innerHTML=`<div class="authbox">${logo}${dots(2)}<button class="back" id="a-back">← ${prettyPhone(authEl.dataset.phone)}</button><h2>Код з SMS</h2><p>Введіть 4 цифри з повідомлення.</p>
+    <label class="f" for="a-code">Код<input id="a-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="4" placeholder="····"></label>
+    <div class="demo">У демо підходить будь-який код з 4 цифр.</div></div>`;
+  if(step==='profile')authEl.innerHTML=`<div class="authbox">${logo}${dots(3)}<h2>${edit?'Ваші дані':'Кілька слів про вас'}</h2><p>Група ФОП потрібна, щоб податок підтягувався автоматично.</p>
+    <div class="two"><label class="f" for="a-name">Ім’я<input id="a-name" autocomplete="given-name" value="${edit?(P.name||''):''}"></label><label class="f" for="a-last">Прізвище<input id="a-last" autocomplete="family-name" value="${edit?(P.last||''):''}"></label></div>
+    <label class="f" for="a-shop">Назва магазину<input id="a-shop" value="${edit?(P.shop||''):''}"></label>
+    <div class="f">Група ФОП<div class="gchips" id="a-group">${GROUPS.map(([v,n])=>`<button class="gchip" data-g="${v}" aria-pressed="${S.group===v}">${n}</button>`).join('')}</div></div>
+    <button class="btn accent" id="a-save" disabled>${edit?'Зберегти':'Перейти до кабінету'}</button>${edit?'<button class="btn ghost" id="a-cancel">Скасувати</button>':''}</div>`;
+  const $a=id=>authEl.querySelector('#'+id);
+  if(step==='phone'){const i=$a('a-phone'),b=$a('a-next');const chk=()=>{b.disabled=digits(i.value).length<10};i.oninput=chk;chk();
+    b.onclick=()=>{let d=digits(i.value);if(d.length===10)d='38'+d;authEl.dataset.phone=d;openAuth('code')};i.onkeydown=e=>{if(e.key==='Enter'&&!b.disabled)b.click()};setTimeout(()=>i.focus(),50)}
+  if(step==='code'){const i=$a('a-code');$a('a-back').onclick=()=>openAuth('phone');setTimeout(()=>i.focus(),50);
+    i.oninput=()=>{i.value=digits(i.value).slice(0,4);if(i.value.length===4){const d=authEl.dataset.phone;if(S.profile&&digits(S.profile.phone)===d&&S.profile.name){S.auth=true;finishAuth()}else{S.profile={phone:d};openAuth('profile')}}}}
+  if(step==='profile'){let g=S.group;const sv=$a('a-save');const chk=()=>{sv.disabled=!($a('a-name').value.trim()&&$a('a-shop').value.trim())};['a-name','a-last','a-shop'].forEach(id=>$a(id).oninput=chk);chk();
+    authEl.querySelectorAll('.gchip').forEach(b=>b.onclick=()=>{g=b.dataset.g;authEl.querySelectorAll('.gchip').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+    sv.onclick=()=>{S.profile=Object.assign({},S.profile,{name:$a('a-name').value.trim(),last:$a('a-last').value.trim(),shop:$a('a-shop').value.trim()});S.group=g;S.auth=true;finishAuth()};
+    const c=$a('a-cancel');if(c)c.onclick=closeAuth;setTimeout(()=>$a('a-name').focus(),50)}
+}
+function closeAuth(){if(!authEl)return;const el=authEl;authEl=null;el.classList.add('closing');setTimeout(()=>el.remove(),250)}
+function finishAuth(){save();paintUser();closeAuth();(()=>render(false))();toast('Вітаємо, '+voc(S.profile.name)+'!')}
+function logout(){S.auth=false;save();(()=>{closeModal();hidePush()})();openAuth('phone')}
+function openProfile(){const p=S.profile||{};const g=(GROUPS.find(x=>x[0]===S.group)||['','—'])[1];
+  ((h,l)=>openModal(h,l))(`<div class="profhead"><span class="avatar">${initials(p)}</span><div><h3 style="margin:0">${p.name||''} ${p.last||''}</h3><div class="small">ФОП, магазин «${p.shop||''}»</div></div></div>
+   <div><div class="profrow"><span>Телефон</span><b>${prettyPhone(p.phone)}</b></div><div class="profrow"><span>Група ФОП</span><b>${g}</b></div><div class="profrow"><span>Податок</span><b>${S.group==='12'?'фіксований щомісяця':S.group==='3v'?'3% + 1%':'5% + 1%'}</b></div><div class="profrow"><span>Дані зберігаються</span><b>у цьому браузері</b></div></div>
+   <button class="btn ghost" id="pf-edit">Змінити дані</button><button class="btn" id="pf-out">Вийти</button>`,'Профіль');
+  document.getElementById('pf-edit').onclick=()=>{(()=>{closeModal();hidePush()})();openAuth('profile',true)};document.getElementById('pf-out').onclick=logout}
+document.querySelectorAll('[data-avatar]').forEach(b=>b.onclick=openProfile);
+paintUser();
 
 S.done.dash=true;
 const h=location.hash.slice(1);go(PAGES.some(p=>p[0]===h)?h:'over');
+addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(h!==page&&PAGES.some(p=>p[0]===h))go(h)});if(!S.auth)openAuth('phone');
 })();
 </script>
 </body>
