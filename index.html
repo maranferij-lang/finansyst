@@ -326,7 +326,7 @@ const ENVS=[
   {k:'self',n:'Собі',             c:'var(--ok)',    goal:0,     gl:'можна вивести без попередження'},
 ];
 const SALES_DAY=13000;                       // середні продажі за день (8 тижнів історії)
-const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:6,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
+const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:13,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
 const OD_RATE=.24, OD_SHARE=.30;             // умовні умови овердрафту
 
 const DEF={
@@ -349,9 +349,9 @@ const total=()=>Object.values(S.bal).reduce((a,b)=>a+b,0);
 function forecast(){
   const inflow=SALES_DAY*S.pct.ops/100;let b=S.bal.ops;const days=[];
   for(let i=0;i<30;i++){const pays=OPS_PAYS.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);b=low+inflow;days.push({i,low,end:b,pays})}
-  const g=days.find(d=>d.low<0),worst=Math.min(...days.map(d=>d.low));
+  const g=days.find(d=>d.low<0);   // овердрафт береться рівно на дефіцит першого розриву (специфікація команди)
   // сума овердрафту покриває найглибшу точку, щоб після нього в прогнозі не лишилось жодного розриву
-  return{days,gap:g?{i:g.i,need:-worst,first:-g.low,pay:g.pays[0]}:null,inflow};
+  return{days,gap:g?{i:g.i,need:-g.low,first:-g.low,pay:g.pays[0]}:null,inflow};
 }
 
 /* ======================================================================
@@ -551,7 +551,7 @@ function openPay(){
 }
 function handlePayment(a,src,title){
   const shares={};let used=0;ENVS.forEach(e=>{if(e.k==='self')return;shares[e.k]=Math.round(a*pctOf(e.k)/100);used+=shares[e.k]});shares.self=a-used;
-  S.tx.unshift({src,t:title,a,ago:'щойно',fresh:true});S.todaySales=(S.todaySales||14760)+a;S.done.pay=true;
+  S.tx.unshift({src,t:title,a,ago:'щойно',fresh:true});S.todaySales=(S.todaySales||14760)+a;S.done.pay=true;save();paintSteps();
   const go=()=>{flyIn(a,src,shares)};
   if(tab!=='env'){setTab('env');setTimeout(go,420)}else go();
 }
@@ -559,13 +559,15 @@ function flyIn(a,src,shares){
   const box=$('paybox');if(!box)return;
   box.innerHTML=`<div class="paybanner" id="pb"><span class="coin">₴</span><div><div class="t">${src==='Імітація'?'Імітація платежу':src+' · тестова оплата'} · щойно</div><b class="num">+${fmt(a)}</b></div></div>`;
   const app=$('app'),ar=app.getBoundingClientRect(),from=$('pb').querySelector('.coin').getBoundingClientRect();
+  const keys=ENVS.filter(e=>shares[e.k]&&$('env-'+e.k)).map(e=>e.k);let left=keys.length;
+  const done=()=>{S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах')};if(!left){ENVS.forEach(e=>S.bal[e.k]+=shares[e.k]||0);done();return}
   ENVS.forEach((e,j)=>{const sh=shares[e.k];if(!sh)return;const card=$('env-'+e.k);if(!card)return;
     const to=card.getBoundingClientRect();const chip=document.createElement('div');chip.className='flychip';chip.style.background=e.c;chip.textContent='+'+fmtn(sh);$('layer').appendChild(chip);
     const x0=from.left-ar.left,y0=from.top-ar.top,x1=to.left-ar.left+to.width/2-30,y1=to.top-ar.top+to.height/2-12;
     const anim=chip.animate([{transform:`translate(${x0}px,${y0}px) scale(.5)`,opacity:0},{transform:`translate(${x0+10}px,${y0}px) scale(1)`,opacity:1,offset:.18},{transform:`translate(${x1}px,${y1}px) scale(.95)`,opacity:1,offset:.85},{transform:`translate(${x1}px,${y1}px) scale(.6)`,opacity:0}],{duration:RM?1:1000,delay:RM?0:300+j*140,easing:'cubic-bezier(.5,0,.2,1)',fill:'both'});
     anim.onfinish=()=>{chip.remove();S.bal[e.k]+=sh;countUp($('bal-'+e.k),S.bal[e.k],'bal-'+e.k);const b=$('bar-'+e.k);if(b)b.style.width=Math.min(100,S.bal[e.k]/e.goal*100)+'%';
       const p=$('plus-'+e.k);p.textContent='+'+fmtn(sh);card.classList.remove('bump');void card.offsetWidth;card.classList.add('bump');setTimeout(()=>card.classList.remove('bump'),700);
-      if(e.k==='self'){S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах')}};
+      if(--left===0)done()};
   });
 }
 
@@ -587,7 +589,7 @@ async function payWFP(a,title){
       function(){ok()},function(r){st.textContent='Оплату відхилено: '+((r&&r.reason)||'спробуйте ще раз')},function(){st.textContent='Платіж обробляється…'});
   }catch(e){st.textContent='Віджет не відкрився: '+e.message}
 }
-window.addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk()});
+window.addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk();if(e.data==='WfpWidgetEventClose'){const st=$('pay-status');if(st)st.textContent='Оплату скасовано. Можна спробувати ще раз або імітувати оплату.'}});
 
 /* HMAC-MD5 (UTF-8). MD5 — RFC 1321 */
 function md5bytes(bytes){
@@ -667,7 +669,7 @@ function stepsHTML(){const nx=JS.findIndex(x=>!S.done[x.k]);return JS.map((x,i)=
 function paintSteps(){const el=$('jsteps-side');if(el){el.innerHTML=stepsHTML();bindSteps(el)}const sh=$('jsteps-sheet');if(sh){sh.innerHTML=stepsHTML();bindSteps(sh)}}
 function bindSteps(el){el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{const fromSheet=!!b.closest('.panel');if(fromSheet)closeSheet();setTimeout(()=>JS[+b.dataset.j].a(),fromSheet?250:0)})}
 $('demo-btn').onclick=()=>{openSheet(`<div class="lbl">Сценарій для журі</div><h3>5 кроків показу</h3><div class="jsteps" id="jsteps-sheet"></div><button class="btn ghost" data-reset>↺ Скинути демо до початку</button>`,'Сценарій для журі');paintSteps();bindReset()};
-function resetDemo(){S=JSON.parse(JSON.stringify(DEF));for(const k in lastNum)delete lastNum[k];save();closeSheet();hidePush();setTab('home');toast('Демо скинуто')}
+function resetDemo(){S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;for(const k in lastNum)delete lastNum[k];save();closeSheet();hidePush();setTab('home');toast('Демо скинуто')}
 function bindReset(){document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=resetDemo)}
 bindReset();
 

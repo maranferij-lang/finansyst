@@ -323,7 +323,7 @@ const ENVS=[
   {k:'self',n:'Собі',             c:'var(--ok)',    goal:0,     gl:'можна вивести без попередження'},
 ];
 const SALES_DAY=13000;
-const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:6,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
+const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:13,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
 const OD_RATE=.24,OD_SHARE=.30;
 const DEF={group:'3',pct:{buy:50,ops:12,mkt:15,res:5},bal:{tax:51426,buy:38400,ops:18880,mkt:9600,res:12000,self:6800},
   tx:[{src:'Checkbox',t:'Каса в магазині, 3 чеки',a:4180,ago:'сьогодні 12:40'},{src:'NovaPay',t:'Кросівки «Ран», 41',a:3100,ago:'сьогодні 11:05'},{src:'Нова пошта',t:'Післяплата, ТТН 2045…118',a:2800,ago:'сьогодні 09:52'},{src:'LiqPay',t:'Лофери «Ліра», 37',a:2800,ago:'вчора 21:17'}],
@@ -340,8 +340,8 @@ const total=()=>Object.values(S.bal).reduce((a,b)=>a+b,0);
 function forecast(){
   const inflow=SALES_DAY*S.pct.ops/100;let b=S.bal.ops;const days=[];
   for(let i=0;i<30;i++){const pays=OPS_PAYS.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);b=low+inflow;days.push({i,low,end:b,pays})}
-  const g=days.find(d=>d.low<0),worst=Math.min(...days.map(d=>d.low));
-  return{days,gap:g?{i:g.i,need:-worst,first:-g.low,pay:g.pays[0]}:null,inflow};
+  const g=days.find(d=>d.low<0);   // овердрафт береться рівно на дефіцит першого розриву (специфікація команди)
+  return{days,gap:g?{i:g.i,need:-g.low,first:-g.low,pay:g.pays[0]}:null,inflow};
 }
 const odDays=a=>Math.max(1,Math.ceil(a/(SALES_DAY*OD_SHARE)));
 
@@ -488,13 +488,15 @@ function flyIn(a,src,shares){
   const box=$('paybox');if(!box)return;
   box.innerHTML=`<div class="paybanner" id="pb"><span class="coin">₴</span><div><div class="t">${src==='Імітація'?'Імітація платежу':src+' · тестова оплата'} · щойно</div><b class="num">+${fmt(a)}</b></div></div>`;
   const from=$('pb').querySelector('.coin').getBoundingClientRect();
+  const keys=ENVS.filter(e=>shares[e.k]&&$('env-'+e.k)).map(e=>e.k);let left=keys.length;
+  const done=()=>{S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах');const p=nextProduct();if($('pay-amt')){$('pay-amt').value=p[1];$('pay-prod').textContent=p[0]}};if(!left){ENVS.forEach(e=>S.bal[e.k]+=shares[e.k]||0);done();return}
   ENVS.forEach((e,j)=>{const sh=shares[e.k];const card=$('env-'+e.k);if(!sh||!card)return;const to=card.getBoundingClientRect();
     const chip=document.createElement('div');chip.className='flychip';chip.style.background=e.c;chip.textContent='+'+fmtn(sh);$('layer').appendChild(chip);
     const x0=from.left,y0=from.top,x1=to.left+to.width/2-30,y1=to.top+to.height/2-12;
     const an=chip.animate([{transform:`translate(${x0}px,${y0}px) scale(.5)`,opacity:0},{transform:`translate(${x0+10}px,${y0}px) scale(1)`,opacity:1,offset:.18},{transform:`translate(${x1}px,${y1}px) scale(.95)`,opacity:1,offset:.85},{transform:`translate(${x1}px,${y1}px) scale(.6)`,opacity:0}],{duration:RM?1:1000,delay:RM?0:300+j*140,easing:'cubic-bezier(.5,0,.2,1)',fill:'both'});
     an.onfinish=()=>{chip.remove();S.bal[e.k]+=sh;countUp($('bal-'+e.k),S.bal[e.k],'bal-'+e.k);const b=$('bar-'+e.k);if(b)b.style.width=Math.min(100,S.bal[e.k]/e.goal*100)+'%';
       $('plus-'+e.k).textContent='+'+fmtn(sh);card.classList.remove('bump');void card.offsetWidth;card.classList.add('bump');setTimeout(()=>card.classList.remove('bump'),700);
-      if(e.k==='self'){S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах');const p=nextProduct();if($('pay-amt')){$('pay-amt').value=p[1];$('pay-prod').textContent=p[0]}}};
+      if(--left===0)done()};
   });
 }
 
@@ -513,7 +515,7 @@ async function payWFP(a,title){
       ()=>ok(),r=>{st.textContent='Оплату відхилено: '+((r&&r.reason)||'спробуйте ще раз')},()=>{st.textContent='Платіж обробляється…'});st.textContent='Віджет відкрито.'}
   catch(e){st.textContent='Віджет не відкрився: '+e.message}
 }
-addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk()});
+addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk();if(e.data==='WfpWidgetEventClose'){const st=$('pay-status');if(st)st.textContent='Оплату скасовано. Можна спробувати ще раз або імітувати оплату.'}});
 function md5bytes(bytes){
   const K=new Int32Array(64),r=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
   for(let i=0;i<64;i++)K[i]=Math.floor(Math.abs(Math.sin(i+1))*4294967296)|0;
