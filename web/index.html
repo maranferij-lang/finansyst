@@ -107,6 +107,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 @keyframes sheen{40%,100%{transform:translateX(100%)}}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .tgl{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 10px;cursor:pointer;position:relative;z-index:1}.tgl input{position:absolute;opacity:0;pointer-events:none}.tgl .sw{width:40px;height:24px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}.tgl .sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}.tgl input:checked+.sw{background:var(--accent)}.tgl input:checked+.sw::after{transform:translateX(16px)}.tgl input:focus-visible+.sw{outline:2px solid var(--accent);outline-offset:2px}
+.altrow{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1}.altrow .btn{flex:1 1 140px;background:var(--surface)}.btncol{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .btn.sm{padding:8px 12px;font-size:13px;border-radius:10px}
 .btn svg{width:17px;height:17px}
 
@@ -337,13 +338,14 @@ $('date').textContent=`${WD[today.getDay()]}, ${today.getDate()} ${MONTHS[today.
 const ENVS=[
   {k:'tax', n:'Податки',          c:'var(--warn)',  goal:70200, gl:'єдиний податок + військовий збір за III квартал, до 19.11'},
   {k:'buy', n:'Закупівля товару', c:'var(--accent)',goal:52000, gl:'партія у фабрики взуття «Крок» через 13 днів'},
-  {k:'ops', n:'Операційні',       c:'var(--blue)',  goal:40000, gl:'оренда складу 40 000 ₴ '+inDays(2)},
+  {k:'ops', n:'Операційні',       c:'var(--blue)',  goal:40000, get gl(){return 'оренда складу 40 000 ₴ '+inDays(payDay(0))}},
   {k:'mkt', n:'Маркетинг',        c:'var(--violet)',goal:18000, gl:'реклама Meta через 10 днів'},
   {k:'res', n:'Резерв',           c:'var(--teal)',  goal:60000, gl:'подушка на 1 місяць витрат'},
   {k:'self',n:'Собі',             c:'var(--ok)',    goal:0,     gl:'можна вивести без попередження'},
 ];
 const SALES_DAY=13000;
 const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:14,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
+const payDay=(j,mv)=>{mv=mv||{};return mv[j]!=null?mv[j]:S.moved&&S.moved[j]!=null?S.moved[j]:OPS_PAYS[j].d};   // платіж можна перенести на іншу дату
 const OD_RATE=.24,OD_SHARE=.30;
 const DEF={group:'3',pct:{buy:50,ops:12,mkt:15,res:5},bal:{tax:51426,buy:38400,ops:18880,mkt:9600,res:12000,self:6800},
   tx:[{src:'Checkbox',t:'Каса в магазині, 3 чеки',a:4180,ago:'сьогодні 12:40'},{src:'NovaPay',t:'Кросівки «Ран», 41',a:3100,ago:'сьогодні 11:05'},{src:'Нова пошта',t:'Післяплата, ТТН 2045…118',a:2800,ago:'сьогодні 09:52'},{src:'LiqPay',t:'Лофери «Ліра», 37',a:2800,ago:'вчора 21:17'}],
@@ -359,10 +361,10 @@ const selfPct=()=>100-taxPct()-S.pct.buy-S.pct.ops-S.pct.mkt-S.pct.res;
 const pctOf=k=>k==='tax'?taxPct():k==='self'?Math.max(0,selfPct()):S.pct[k];
 const total=()=>Object.values(S.bal).reduce((a,b)=>a+b,0)+(S.unalloc||0);   // усе, що лежить на рахунку ФОП: конверти + ще не розподілене
 const repayOf=a=>S.autoRepay?Math.min(S.debt||0,Math.round(a*OD_SHARE)):0;            // погашення овердрафту списується до поділу по конвертах
-function forecast(x){x=x||{};
+function forecast(x){x=x||{};const PL=OPS_PAYS.map((p,j)=>({...p,j,d:payDay(j,x.move)}));
   const k=S.pct.ops/100;let debt=(S.debt||0)+(x.debt||0);const pend=(S.unalloc||0)-repayOf(S.unalloc||0);debt-=repayOf(S.unalloc||0);
   let b=S.bal.ops+pend*k+(x.ops||0);const days=[];let inflow0=null;
-  for(let i=0;i<30;i++){const pays=OPS_PAYS.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
+  for(let i=0;i<30;i++){const pays=PL.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
     const rp=S.autoRepay?Math.min(debt,SALES_DAY*OD_SHARE):0;debt-=rp;const inflow=(SALES_DAY-rp)*k;if(inflow0===null)inflow0=inflow;b=low+inflow;days.push({i,low,end:b,pays})}
   const inflow=inflow0;
   const g=days.find(d=>d.low<0);   // овердрафт береться рівно на дефіцит першого розриву (специфікація команди)
@@ -619,6 +621,27 @@ function openRepay(){const p=repayPlan();
     ${rows?`<div class="kv">${rows}<span>Залишок боргу</span><span>${fmt(p.left)}</span></div>`:''}
     <div class="row" style="display:flex;gap:10px;margin-top:6px">${p.total?`<button class="btn accent" id="rp-go">Погасити ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="rp-cl">${p.total?'Скасувати':'Зрозуміло'}</button></div>`,'Погашення овердрафту');
   $('rp-cl').onclick=closeModal;const g=$('rp-go');if(g)g.onclick=()=>{S.unalloc-=p.u;S.bal.res-=p.r;S.debt-=p.total;save();closeModal();render(false);toast(S.debt>0?`Погашено ${fmt(p.total)}, залишок ${fmt(S.debt)}`:'Овердрафт погашено повністю')}}
+
+/* ---------- розрив без овердрафту: перекинути з конвертів або перенести платіж ---------- */
+function transferPlan(){let X=0;for(let i=0;i<1000&&forecast({ops:X}).gap;i++)X+=100;   // скільки треба докласти в «Операційні», щоб за 30 днів не було розриву
+  const r=Math.min(X,S.bal.res),s=Math.min(X-r,S.bal.self);return{need:X,r,s,total:r+s,full:r+s>=X}}
+function movePlan(g){const j=g.pay.j;for(let d=g.i+1;d<Math.min(30,g.i+15);d++){   // реалістично домовитись про перенесення максимум на 2 тижні
+    const f=forecast({move:{[j]:d}});if(!f.gap||f.gap.i>d)return{j,d}}return null}
+function gapResolved(msg){S.alert=false;S.done.gap=true;save();$('badge').hidden=true;closeModal();render(false);toast(msg)}
+function openTransfer(){const p=transferPlan();
+  const rows=[p.r?`<span>З конверта «Резерв»</span><span>${fmt(p.r)}</span>`:'',p.s?`<span>З конверта «Собі»</span><span>${fmt(p.s)}</span>`:''].join('');
+  openModal(`<div class="lbl">Без овердрафту</div><h3>${p.total?`Перекинути ${fmt(p.total)} в «Операційні»`:'У «Резерві» і «Собі» зараз порожньо'}</h3>
+    <div class="small">${p.full?`Цього вистачить, щоб за 30 днів не було жодного розриву. Гроші лишаються на тому ж рахунку ФОП, змінюється тільки поділ між конвертами.`:p.total?`Цього не вистачить: потрібно ${fmt(p.need)}. Решту можна перекрити овердрафтом.`:`Потрібно ${fmt(p.need)}. Перекрийте розрив овердрафтом або перенесіть платіж.`}</div>
+    ${rows?`<div class="kv">${rows}</div>`:''}
+    <div class="btncol">${p.total?`<button class="btn accent" id="tr-go">Перекинути ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="tr-cl">${p.total?'Скасувати':'Зрозуміло'}</button></div>`,'Перекинути між конвертами');
+  $('tr-cl').onclick=closeModal;const go_=$('tr-go');if(go_)go_.onclick=()=>{S.bal.res-=p.r;S.bal.self-=p.s;S.bal.ops+=p.total;
+    if(p.full)gapResolved('Розрив закрито без овердрафту');else{save();closeModal();render(false);toast('Перекинуто '+fmt(p.total)+', решту можна взяти овердрафтом')}}}
+function openMove(){const f=forecast();if(!f.gap)return;const g=f.gap,m=movePlan(g);
+  openModal(`<div class="lbl">Без овердрафту</div><h3>${m?`Перенести платіж «${g.pay.t}» на ${wd(m.d)} ${dm(m.d)}`:'Перенесення не допоможе'}</h3>
+    <div class="small">${m?`Зараз платіж ${fmt(g.pay.a)} ${wd(g.i)} ${dm(g.i)}. ${dm(m.d)} у конверті вже вистачить грошей. Дату треба погодити з отримувачем платежу, Фінансист оновить календар платежів і прогноз.`:`Навіть якщо перенести платіж на 2 тижні, грошей у конверті не вистачить: бракує ${fmt(g.need)}. Перекрийте розрив овердрафтом або грошима з інших конвертів.`}</div>
+    <div class="btncol">${m?`<button class="btn accent" id="mv-go">Перенести на ${dm(m.d)}</button>`:''}<button class="btn ghost" id="mv-cl">${m?'Скасувати':'Зрозуміло'}</button></div>`,'Перенести платіж');
+  $('mv-cl').onclick=closeModal;const go_=$('mv-go');if(go_)go_.onclick=()=>{S.moved=S.moved||{};S.moved[m.j]=m.d;
+    if(forecast().gap){save();closeModal();render(false);toast('Платіж перенесено, але радар бачить ще один розрив')}else gapResolved(`«${g.pay.t}» перенесено на ${dm(m.d)}`)}}
 function runRadar(){
   const box=$('radarbox');if(!box)return;
   box.innerHTML=`<div class="card"><div class="ct">Платіжний радар<span class="sub">аналіз…</span></div><div class="scan"><i></i><i></i><i></i><b></b></div><div class="small" style="text-align:center">Перевіряємо платежі й очікувані надходження на 30 днів</div></div>`;
@@ -627,8 +650,8 @@ function runRadar(){
       <div class="big num">−${fmtn(g.need)}<small>₴</small></div>
       <div class="small">${g.pay.t}: ${fmt(g.pay.a)}, у конверті буде ${fmt(g.pay.a-g.first)}.${g.need>g.first+1?` З урахуванням наступних платежів за місяць бракує ${fmt(g.need)}.`:''}</div>
       <button class="btn crit" id="cover">Перекрити розрив (взяти овердрафт)</button>
-      <div class="small">Або перекинути гроші з конвертів «Резерв» і «Собі», або перенести платіж.</div></div>`;
-    $('cover').onclick=()=>openOD(odAmount(g),g);flash('c-alert')},RM?10:1900);
+      <div class="small" style="position:relative">Або без овердрафту:</div><div class="altrow"><button class="btn ghost sm" id="alt-tr">Перекинути з «Резерву» і «Собі»</button><button class="btn ghost sm" id="alt-mv">Перенести платіж</button></div></div>`;
+    $('cover').onclick=()=>openOD(odAmount(g),g);$('alt-tr').onclick=openTransfer;$('alt-mv').onclick=openMove;flash('c-alert')},RM?10:1900);
 }
 function showPush(g){const old=$('layer').querySelector('.push');if(old)old.remove();
   const p=document.createElement('button');p.className='push';p.innerHTML=`<span class="pi">${ic('tg',0)}</span><span><span class="h"><span>Фінансист · Telegram</span><span>зараз</span></span><span class="b">${g.pay.t} ${inDays(g.i)}: бракує ${fmt(g.need)}. Перекрити розрив?</span></span>`;
