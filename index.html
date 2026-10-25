@@ -253,7 +253,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .success path{animation-delay:.45s}
 .note{font-size:12px;color:var(--muted);margin:0}
 .hint{font-size:13px;border-radius:12px;padding:10px 12px;background:var(--warn-soft)}
-.hint.ok{background:var(--accent-soft)}.hint.crit{background:var(--crit-soft)}
+
 .push{position:absolute;left:10px;right:10px;top:calc(8px + env(safe-area-inset-top,0px));z-index:35;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:20px;padding:12px 13px;display:grid;grid-template-columns:38px 1fr;gap:11px;box-shadow:0 18px 40px -18px var(--shadow);text-align:left;animation:pushIn .5s var(--ease) both;cursor:pointer}
 .push.out{animation:pushOut .3s ease-in both}
 @keyframes pushIn{from{transform:translateY(-140%)}to{transform:none}}
@@ -297,6 +297,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .fcur.clk{animation:fclk .45s ease-out}
 @keyframes fclk{50%{scale:.65}100%{scale:1}}
 @media (max-width:520px){.subs{bottom:76px}}
+.billbtn{border:0;background:none;padding:2px 0 0;color:var(--accent);font-weight:600;font-size:12.5px;cursor:pointer}.billst{display:inline-block;margin-top:2px;font-size:12px;color:var(--accent);font-weight:500}.paidli .t{color:var(--muted)}.paym{display:flex;gap:6px;flex-wrap:wrap}.hint.ok{background:var(--accent-soft)}.hint.crit{background:var(--crit-soft)}
 </style>
 </head>
 <body>
@@ -388,7 +389,7 @@ const repayOf=a=>S.autoRepay?Math.min(S.debt||0,Math.round(a*OD_SHARE)):0;      
 const firstHint=a=>[taxOf(a)?`податок ${fmt(taxOf(a))}`:'',repayOf(a)?`погашення овердрафту ${fmt(repayOf(a))} (${OD_SHARE*100}%)`:''].filter(Boolean).join(', потім ');
 
 /* прогноз конверта «Операційні»: щодня приходить його частка продажів, виходять оренда, ЗП, тарифи */
-function forecast(x){x=x||{};const PL=OPS_PAYS.map((p,j)=>({...p,j,d:payDay(j,x.move)}));
+function forecast(x){x=x||{};const PL=OPS_PAYS.map((p,j)=>({...p,j,d:payDay(j,x.move)})).filter(p=>!(S.paid&&S.paid['o'+p.j]==='paid'));   // сплачене із застосунку вже списано з конверта
   const tp=taxPct()/100,k=S.pct.ops/100/(1-tp);let debt=(S.debt||0)+(x.debt||0);const ua=S.unalloc||0,pend=ua-taxOf(ua)-repayOf(ua);debt-=repayOf(ua);
   let b=S.bal.ops+pend*k+(x.ops||0);const days=[];let inflow0=null;
   for(let i=0;i<30;i++){const pays=PL.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
@@ -538,7 +539,7 @@ function radarHTML(){
       <div class="small" style="position:relative">Шукає дні, коли платежу не вистачить грошей у конверті.</div>
       <button class="btn crit" id="run">${ic('bolt')}Запустити радар</button></div>`
     :`<div class="card green" id="c-radar">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">усе покрито</span></div><div class="small" style="position:relative">${S.debt>0?'На 30 днів уперед розривів немає.':S.od?'Овердрафт погашено. На 30 днів уперед розривів немає.':'На 30 днів уперед розривів немає.'}</div></div>`}</div>${odBoxHTML()}
-  <div class="card"><div class="ct">Платежі з конверта</div><div class="list">${f.days.filter(d=>d.pays.length).map(d=>`<div class="li"><span class="ic" style="background:var(--blue-soft);color:var(--blue)">${dm(d.i).slice(0,2)}</span><div><div class="t">${d.pays[0].t}</div><div class="s">${wd(d.i)} ${dm(d.i)} · залишок після: ${fmt(d.low)}</div></div><span class="amt ${d.low<0?'neg':'out'}">−${fmt(d.pays[0].a)}</span></div>`).join('')}</div></div>${calHTML()}`;
+  ${calHTML(f)}`;
 }
 function chartSVG(f){
   const W=340,H=170,pl=36,pr=8,pt=12,pb=22,N=30,dx=(W-pl-pr)/N;
@@ -556,9 +557,11 @@ function chartSVG(f){
    <path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2" clip-path="url(#cp)" pathLength="1" class="draw"/>
    <path d="${d}" fill="none" stroke="var(--crit)" stroke-width="2" clip-path="url(#cn)" pathLength="1" class="draw"/>${gm}${xt}</svg>`;
 }
-function radarAfter(){const r=$('run');if(r)r.onclick=runRadar;odBoxAfter()}
+function radarAfter(){const r=$('run');if(r)r.onclick=runRadar;odBoxAfter();bindBills()}
 /* ---------- овердрафт: автопогашення або вручну ---------- */
-function repayPlan(){let need=S.debt||0;const u=Math.min(need,S.unalloc||0);need-=u;const r=Math.min(need,S.bal.res);need-=r;return{u,r,total:u+r,left:need}}
+function repayPlan(){let need=S.debt||0;const ua=S.unalloc||0,u=Math.min(need,ua-taxOf(ua));need-=u;const r=Math.min(need,S.bal.res);need-=r;
+  const g=Math.round((ua-taxOf(ua)-u)/(1-taxPct()/100));   // залишок нерозподіленого «до податку», щоб при поділі податок не порахувався двічі
+  return{u,r,total:u+r,left:need,g,taxNow:ua-u-g}}
 function odBoxHTML(){if(!(S.debt>0))return '';
   return `<div class="card" id="c-odbox"><div class="ct">Овердрафт Raiffeisen<span class="chip crit">борг ${fmt(S.debt)}</span></div>
     <div class="small">${S.autoRepay?`Спершу з кожного надходження відкладається податок, потім ${OD_SHARE*100}% йде на погашення, решта ділиться по конвертах. Приблизно ${odDays(S.debt)} дн. до повного погашення.`:'Автопогашення вимкнене: надходження повністю діляться по конвертах. Відсотки (умовно '+OD_RATE*100+'% річних) нараховуються, поки борг не закрито.'}</div>
@@ -567,12 +570,12 @@ function odBoxHTML(){if(!(S.debt>0))return '';
 function odBoxAfter(){const a=$('od-auto');if(a)a.onchange=()=>{S.autoRepay=a.checked;save();render(false);toast(S.autoRepay?'Автопогашення увімкнено':'Автопогашення вимкнено')};
   const b=$('od-pay');if(b)b.onclick=openRepay}
 function openRepay(){const p=repayPlan();
-  const rows=[p.u?`<span>З нерозподілених грошей</span><span>${fmt(p.u)}</span>`:'',p.r?`<span>З конверта «Резерв»</span><span>${fmt(p.r)}</span>`:''].join('');
+  const rows=[p.u?`<span>З нерозподілених грошей</span><span>${fmt(p.u)}</span>`:'',p.taxNow?`<span>Податок із них, у «Податки»</span><span>${fmt(p.taxNow)}</span>`:'',p.r?`<span>З конверта «Резерв»</span><span>${fmt(p.r)}</span>`:''].join('');
   openSheet(`<div class="lbl">Овердрафт Raiffeisen</div><h3>${p.total?`Погасити ${fmt(p.total)} зараз`:'Зараз нема з чого погасити'}</h3>
-    <div class="small">Борг ${fmt(S.debt)}. Гроші списуються з рахунку ФОП: спершу ще не розподілені, потім конверт «Резерв». Конверт «Операційні» не чіпаємо, щоб не відкрити новий розрив.</div>
+    <div class="small">Борг ${fmt(S.debt)}. Гроші списуються з рахунку ФОП: спершу ще не розподілені (податок із них одразу йде в «Податки»), потім конверт «Резерв». Конверт «Операційні» не чіпаємо, щоб не відкрити новий розрив.</div>
     ${rows?`<div class="kv">${rows}<span>Залишок боргу</span><span>${fmt(p.left)}</span></div>`:''}
     ${p.total?`<button class="btn accent" id="rp-go">Погасити ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="rp-cl">${p.total?'Скасувати':'Зрозуміло'}</button>`,'Погашення овердрафту');
-  $('rp-cl').onclick=closeSheet;const g=$('rp-go');if(g)g.onclick=()=>{S.unalloc-=p.u;S.bal.res-=p.r;S.debt-=p.total;save();closeSheet();render(false);toast(S.debt>0?`Погашено ${fmt(p.total)}, залишок ${fmt(S.debt)}`:'Овердрафт погашено повністю')}}
+  $('rp-cl').onclick=closeSheet;const g=$('rp-go');if(g)g.onclick=()=>{S.unalloc=p.g;S.bal.tax+=p.taxNow;S.bal.res-=p.r;S.debt-=p.total;save();closeSheet();render(false);toast(S.debt>0?`Погашено ${fmt(p.total)}, залишок ${fmt(S.debt)}`:'Овердрафт погашено повністю')}}
 const odAmount=g=>{let X=Math.ceil(g.need/100)*100;for(let i=0;i<200;i++){const f=forecast({ops:X,debt:X});if(f.days[g.i].low>=0)return X;X+=100}return X};
 const odDays=a=>Math.max(1,Math.ceil(a/(SALES_DAY*OD_SHARE)));
 
@@ -735,22 +738,48 @@ function showPush(g){
 function hidePush(){const p=$('layer').querySelector('.push');if(p){p.classList.add('out');setTimeout(()=>p.remove(),300)}}
 $('bell').onclick=()=>{const f=forecast();if(f.gap)showPush(f.gap);else toast('Нових сповіщень немає')};
 
-/* ---------- календар платежів: лише перегляд, прогноз радара не змінює ---------- */
-const CAL=()=>[{i:payDay(0),t:'Оренда складу',a:40000},{i:10,t:'Реклама Meta',a:18000},{i:13,t:'Партія у фабрики-постачальника',a:52000},{i:payDay(1),t:'Зарплата помічниці',a:15000},{i:payDay(2),t:'Тариф Prom.ua',a:4500},{i:26,t:'Єдиний податок + військовий збір за III квартал, до 19.11',a:70200}].sort((x,y)=>x.i-y.i);
-const calHTML=()=>`<div class="card" id="c-cal"><div class="ct">Календар платежів<span class="sub">лише перегляд, 30 днів</span></div><div class="list">${CAL().map(p=>`<div class="li"><span class="ic" style="background:var(--blue-soft);color:var(--blue)">${dm(p.i).slice(0,2)}</span><div><div class="t">${p.t}</div><div class="s">${wd(p.i)} ${dm(p.i)} · ${inDays(p.i)}</div></div><span class="amt out">−${fmt(p.a)}</span></div>`).join('')}</div></div>`;
+/* ---------- календар платежів: оплата прямо з застосунку (імітація) ---------- */
+const PAYEE={o0:'Орендодавець складу',o1:'Помічниця, зарплата',o2:'Prom.ua',meta:'Meta, рекламний кабінет',buy:'Фабрика-постачальник',tax:'ДПС, єдиний податок і військовий збір'};
+const CAL=()=>[{id:'o0',j:0,e:'ops',t:'Оренда складу',a:40000},{id:'meta',i:10,e:'mkt',t:'Реклама Meta',a:18000},{id:'buy',i:13,e:'buy',t:'Партія у фабрики-постачальника',a:52000},{id:'o1',j:1,e:'ops',t:'Зарплата помічниці',a:15000},{id:'o2',j:2,e:'ops',t:'Тариф Prom.ua',a:4500},{id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Єдиний податок + військовий збір за III квартал, до 19.11',a:70200}].map(p=>({...p,i:p.j!=null?payDay(p.j):p.i})).sort((x,y)=>x.i-y.i);
+const envName=k=>ENVS.find(e=>e.k===k).n;
+const billState=id=>S.paid&&S.paid[id];
+function calHTML(f){f=f||forecast();return `<div class="card" id="c-cal"><div class="ct">Календар платежів<span class="sub">30 днів</span></div><div class="list">${CAL().map(p=>{const st=billState(p.id),low=p.j!=null&&st!=='paid'?f.days[p.i].low:null;
+  return `<div class="li${st==='paid'?' paidli':''}"><span class="ic" style="background:${st==='paid'?'var(--accent-soft);color:var(--accent)':'var(--blue-soft);color:var(--blue)'}">${dm(p.i).slice(0,2)}</span><div><div class="t">${p.t}</div><div class="s">${st==='paid'?'сплачено із застосунку':`${wd(p.i)} ${dm(p.i)} · з «${envName(p.e)}»${low!=null?' · залишок після: '+fmt(low):''}`}</div>${st==='paid'?'':st==='sched'?`<span class="billst">Заплановано на ${dm(p.i)}</span>`:`<button class="billbtn" data-bill="${p.id}">Оплатити</button>`}</div><span class="amt ${low!=null&&low<0?'neg':'out'}">${st==='paid'?'✓ ':''}−${fmt(p.a)}</span></div>`}).join('')}</div></div>`}
+function bindBills(){document.querySelectorAll('[data-bill]').forEach(b=>b.onclick=()=>openBill(b.dataset.bill))}
+function openBill(id){const p=CAL().find(x=>x.id===id);if(!p)return;const f=forecast();
+  const now=p.j==null&&S.bal[p.e]>=p.a;                               // з інших конвертів платимо одразу, якщо вистачає
+  const gapBefore=p.j!=null&&f.gap&&f.gap.i<=p.i;                      // для «Операційних» дивимось прогноз радара
+  const canSched=p.j!=null&&!gapBefore;                               // з «Операційних» не платимо наперед, щоб не відкрити розрив: плануємо на дату платежу
+  const short=now?0:p.j!=null?(gapBefore?f.gap.need:0):p.a-S.bal[p.e];
+  const M=[['bank','Рахунок ФОП · Райффайзен'],['liqpay','LiqPay'],['wfp','WayForPay']];let m='bank';
+  openSheet(`<div class="lbl">Оплата з застосунку</div><h3>${p.t}</h3>
+    <div class="kv"><span>Отримувач</span><span>${PAYEE[p.id]}</span><span>Сума</span><span>${fmt(p.a)}</span><span>Дата платежу</span><span>${wd(p.i)} ${dm(p.i)}</span><span>З конверта</span><span>«${envName(p.e)}», зараз ${fmt(S.bal[p.e])}</span></div>
+    ${now||canSched?`<div class="small">Реквізити підтягнуто з рахунку автоматично. Оберіть, чим платити:</div><div class="paym">${M.map(([k,n])=>`<button class="gchip" data-m="${k}" aria-pressed="${k===m}">${n}</button>`).join('')}</div>
+      <div class="hint ok">${now?'У конверті вистачає грошей, платіж пройде одразу.':`Радар перевірив: до ${dm(p.i)} у конверті вистачить грошей. Платіж піде автоматично в день оплати, раніше гроші з конверта не списуються.`}</div>
+      <div class="btncol"><button class="btn accent" id="bl-go">${now?'Оплатити '+fmt(p.a):'Запланувати на '+dm(p.i)}</button><button class="btn ghost" id="bl-cl">Скасувати</button></div>`
+    :`<div class="hint crit">${p.j!=null?`До ${dm(p.i)} у конверті не вистачить ${fmt(short)}. Спершу перекрийте касовий розрив на вкладці радара.`:`У конверті не вистачає ${fmt(short)}. Він доповнюється з кожного надходження, оплатити можна, коли набереться сума.`}</div>
+      <div class="btncol">${p.j!=null?`<button class="btn crit" id="bl-gap">Перекрити розрив</button>`:''}<button class="btn ghost" id="bl-cl">Зрозуміло</button></div>`}
+    <p class="note">У прототипі оплата імітується, гроші нікуди не йдуть.</p>`,'Оплата з застосунку');
+  $('bl-cl').onclick=closeSheet;
+  const gb=$('bl-gap');if(gb)gb.onclick=()=>{closeSheet();setTimeout(()=>{setTab('radar');setTimeout(runRadar,350)},250)};
+  document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{m=b.dataset.m;document.querySelectorAll('[data-m]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+  const go_=$('bl-go');if(go_)go_.onclick=()=>{const mn=M.find(x=>x[0]===m)[1];go_.disabled=true;go_.textContent='Обробляємо…';
+    setTimeout(()=>{S.paid=S.paid||{};if(now){S.paid[p.id]='paid';S.bal[p.e]-=p.a}else S.paid[p.id]='sched';save();closeSheet();render(false);
+      toast(now?`Сплачено ${fmt(p.a)} через ${mn}`:`Заплановано: ${dm(p.i)} через ${mn}`);setTimeout(()=>flash('c-cal'),300)},RM?10:1100)}}
 
 /* ---------- «Вивести собі»: безпечна межа за радаром (конверт «Собі» не блокується, лише попередження) ---------- */
 function spendInfo(){const f=forecast();return{gap:f.gap,safe:f.gap?0:S.bal.self}}
 function openWithdraw(){S.done.spend=true;save();paintSteps();
   const sp=spendInfo();
+  const hcls=a=>a>S.bal.self?'hint crit':sp.gap?'hint':'hint ok';   // зелена, коли безпечно; бежева, коли не радимо; червона, коли стільки немає
   const hint=a=>a>S.bal.self?`Стільки немає в конверті «Собі»: ${fmt(S.bal.self)}.`:sp.gap?`<b>Не радимо:</b> ${dm(sp.gap.i)} не вистачає ${fmt(sp.gap.need)} на «${sp.gap.pay.t}».`:'Безпечно: усі платежі на 30 днів покриті.';
   openSheet(`<div class="lbl">Вивести собі</div><h3>Скільки хочете зняти?</h3>
     <label class="field" for="wd-amt">Сума, ₴<input id="wd-amt" type="number" inputmode="numeric" min="0" step="100" value="${Math.round(S.bal.self)}"></label>
-    <div class="hint" id="wd-res">${hint(S.bal.self)}</div>
+    <div class="${hcls(S.bal.self)}" id="wd-res">${hint(S.bal.self)}</div>
     <button class="btn accent" id="wd-ok">${sp.gap?'Вивести все одно':'Вивести'}</button><button class="btn ghost" id="wd-cl">Не виводити</button>
     <p class="note">Гроші бізнесу й гроші власника лежать на одному рахунку. Застосунок показує межу, рішення завжди за вами.</p>`,'Вивести собі');
   const amt=()=>Math.max(0,Math.round(+$('wd-amt').value||0));
-  $('wd-amt').oninput=()=>{$('wd-res').innerHTML=hint(amt())};
+  $('wd-amt').oninput=()=>{const r=$('wd-res');r.innerHTML=hint(amt());r.className=hcls(amt())};
   $('wd-cl').onclick=closeSheet;
   $('wd-ok').onclick=()=>{const a=amt();if(!(a>0)||a>S.bal.self)return;S.bal.self-=a;save();closeSheet();render(false);toast('Виведено '+fmt(a))};
 }
@@ -784,12 +813,11 @@ function finishOD(){S.bal.ops+=od.amt;S.od+=od.amt;S.debt=(S.debt||0)+od.amt;S.a
 /* ======================================================================
    СЦЕНАРІЙ ДЛЯ ЖУРІ
    ====================================================================== */
-/* авто-показ: кроки в одному масиві, підписи (c) поки заглушки, тривалості (d) у мс. «Авто» натискає справжні кнопки інтерфейсу */
+/* авто-показ: кроки в одному масиві, підписи в CAPS (чернетка), тривалості (d) у мс. «Авто» натискає справжні кнопки інтерфейсу */
 let auto=false,di=-1,showT=[];
 const later=(ms,fn)=>showT.push(setTimeout(fn,ms));
 const clearTimers=()=>{showT.forEach(clearTimeout);showT=[]};
 const hideCursor=()=>$('fcur').classList.remove('on','clk');
-const cap=t=>t+'. Тут буде ваш текст про цей крок. Умовний підпис: що це і навіщо.';
 function point(sel,at){later(at,()=>{if(!auto)return;const el=document.querySelector(sel);if(!el)return;const r=el.getBoundingClientRect(),c=$('fcur');
   c.classList.add('on');c.style.transform=`translate(${Math.round(r.left+r.width*.6)}px,${Math.round(r.top+r.height*.55)}px)`;
   later(RM?50:700,()=>{if(!auto)return;c.classList.remove('clk');void c.offsetWidth;c.classList.add('clk');el.click()})})}
@@ -807,7 +835,18 @@ const DEMO=[
   {k:'bank', t:'Рішення банку',          s:'перевірка і підпис',            d:8000,  a(){if(auto){point('#nx',600);point('#nx',3800);point('#cl',5800)}else{const w=ensureAlert();later(w+400,()=>{const c=$('cover');if(c)c.click()})}}},
   {k:'repay',t:'Погашення',              s:'30% з нового платежу',          d:10500, a(){setTab('env');later(400,openPay);if(auto){later(900,()=>{const a=$('pay-amt');if(a)a.value=3000});point('#pay-sim',1600);point('#split-now',3400);later(8200,()=>{setTab('home');flash('c-spend')})}}},
 ];
-DEMO.forEach(x=>x.c=cap(x.t));
+const CAPS={
+  dash:'Олена, ФОП 3 групи, продає взуття. Гроші на рахунку є, але скільки з них її? Фінансист показує їх по конвертах, а поруч посилки в дорозі й чеки з каси.',
+  pct:'Олена один раз задає відсотки. Податок підтягується з групи ФОП, решту ділить сама: закупівля, оренда й зарплата, реклама, резерв і собі.',
+  pay:'Клієнтка оплачує туфлі через WayForPay. Гроші приходять на рахунок ФОП і поки лежать однією сумою.',
+  env:'Одна кнопка, і платіж розкладається: спершу податок, потім кожен конверт за своїм відсотком.',
+  spend:'Скільки можна взяти собі? Застосунок рахує безпечну межу і попереджає, якщо попереду касовий розрив.',
+  alert:'Радар дивиться на 30 днів уперед. Через 2 дні оренда, а в конверті не вистачає. Олена отримує пуш у Telegram.',
+  radar:'На графіку видно, коли саме залишок у конверті йде в мінус і на скільки.',
+  gap:'Розрив можна закрити кількома способами. Найшвидший: овердрафт Райффайзену рівно на суму дефіциту.',
+  bank:'Банк бачить обороти й прогноз з платформи, тому рішення приходить одразу. Олена підписує, гроші вже в конверті.',
+  repay:'Наступні надходження самі гасять овердрафт: 30% з кожного платежу, решта йде по конвертах. Борг закривається за кілька днів.'};   // чернетка, текст правте тут
+DEMO.forEach(x=>{x.c=CAPS[x.k]||x.t;x.d=Math.max(x.d,Math.round(x.c.length*60))});   // тривалість кроку не менша, ніж треба, щоб дочитати підпис
 const modeHTML=()=>`<span class="mode" id="mode"><button data-mode="manual" aria-pressed="${!auto}">Вручну</button><button data-mode="auto" aria-pressed="${auto}">Авто</button></span>`;
 function stepsHTML(){const nx=DEMO.findIndex(x=>!S.done[x.k]);return modeHTML()+DEMO.map((x,i)=>`<button class="jstep${S.done[x.k]?' done':''}${auto&&i===di?' now':''}${!auto&&i===nx?' next':''}" data-j="${i}"><span class="n">${S.done[x.k]?'✓':i+1}</span><span>${x.t}<small>${x.s}</small></span></button>`).join('')}
 function paintSteps(){const el=$('jsteps-side');if(el){el.innerHTML=stepsHTML();bindSteps(el)}const sh=$('jsteps-sheet');if(sh){sh.innerHTML=stepsHTML();bindSteps(sh)}}
@@ -818,7 +857,7 @@ function runStep(i){
   clearTimers();hideCursor();di=i;const s=DEMO[i],sb=$('subs');
   if(auto){sb.hidden=false;$('subs-k').textContent=`${i+1} / ${DEMO.length}`;$('subs-t').textContent=s.c;
     const bar=$('subs-bar');bar.style.transition='none';bar.style.width=(i/DEMO.length*100)+'%';void bar.offsetWidth;bar.style.transition=RM?'none':`width ${s.d}ms linear`;bar.style.width=((i+1)/DEMO.length*100)+'%';
-    later(s.d,()=>{if(i<DEMO.length-1)runStep(i+1);else hideCursor()})}   // після останнього кроку показ зупиняється
+    later(s.d,()=>{if(i<DEMO.length-1)runStep(i+1);else{hideCursor();auto=false;$('subs').hidden=true;paintSteps();toast('Показ завершено')}})}   // після останнього кроку показ зупиняється
   else sb.hidden=true;
   s.a();paintSteps();
 }
@@ -828,7 +867,7 @@ function restartDemo(){clearTimers();hideCursor();resetDemo();di=-1;if(auto)late
 $('demo-btn').onclick=()=>{openSheet(`<div class="lbl">Сценарій для журі</div><h3>${DEMO.length} кроків показу</h3><div class="jsteps" id="jsteps-sheet"></div><button class="btn ghost" data-reset>↺ Скинути демо до початку</button>`,'Сценарій для журі');paintSteps();bindReset()};
 function bindReset(){document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=restartDemo)}
 bindReset();
-document.addEventListener('keydown',e=>{if(e.key!==' '&&e.key!=='ArrowRight')return;if(e.target.closest('input,select,textarea,button,[contenteditable]'))return;
+document.addEventListener('keydown',e=>{if(e.key!==' '&&e.key!=='ArrowRight')return;if(!auto||e.target.closest('input,select,textarea,button,[contenteditable]'))return;   // у ручному режимі пробіл нічого не запускає
   e.preventDefault();const n=Math.min(DEMO.length-1,di+1);if(auto){setMode(false)}runStep(n)});
 
 

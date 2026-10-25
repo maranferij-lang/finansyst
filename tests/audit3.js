@@ -20,12 +20,12 @@ for(const [path,vp,closeSel] of [['/',{width:390,height:844},'.sheet'],['/web/',
  await p.screenshot({path:'out-'+`a3-${T}-box.png`});
  await p.click('#od-pay');await p.waitForTimeout(600);
  await p.screenshot({path:'out-'+`a3-${T}-sheet.png`});
- const g=x=>({d:x.debt,u:x.unalloc,r:x.bal.res,ops:x.bal.ops});const before=g(await st(p));
+ const g=x=>({d:x.debt,u:x.unalloc,r:x.bal.res,ops:x.bal.ops,tax:x.bal.tax});const before=g(await st(p));
  await p.click('#rp-go');await p.waitForTimeout(700);
  const after=g(await st(p));
- ok(T+'6 спершу нерозподілені, потім резерв',after.u===0&&after.r===before.r-(before.d-before.u-after.d)&&before.d-after.d===before.u+(before.r-after.r),JSON.stringify([before,after]));
+ ok(T+'6 спершу нерозподілені (без податку), потім резерв',after.u===0&&after.tax-before.tax===144&&before.d-after.d===(2400-144)+(before.r-after.r)&&after.r===0,JSON.stringify([before,after]));   // податок 6% з 2 400 іде в «Податки»
  ok(T+'7 Операційні не чіпаємо',after.ops===before.ops);
- ok(T+'8 залишок боргу = 18600-2400-12000',after.d===4200,after.d);
+ ok(T+'8 залишок боргу = 18600-2256-12000',after.d===4344,after.d);
  await p.click('#od-pay');await p.waitForTimeout(600);
  ok(T+'9 коли нема з чого: без кнопки погашення',(await p.locator('#rp-go').count())===0);
  await p.click('#rp-cl');await p.waitForTimeout(400);
@@ -33,6 +33,6 @@ for(const [path,vp,closeSel] of [['/',{width:390,height:844},'.sheet'],['/web/',
  ok(T+'10 увімкнення назад',(await st(p)).autoRepay===true);
  await put(p,{debt:1000,unalloc:5000});await p.reload();await p.waitForTimeout(900);if(T==='M'){await p.click('[data-tab=radar]');await p.waitForTimeout(600)}
  await p.click('#od-pay');await p.waitForTimeout(500);await p.click('#rp-go');await p.waitForTimeout(600);
- {const z=await st(p);ok(T+'11 повне погашення ховає картку',z.debt===0&&z.unalloc===4000&&(await p.locator('#c-odbox').count())===0)};
+ {const z=await st(p);ok(T+'11 повне погашення ховає картку',z.debt===0&&z.unalloc===3936&&(await p.locator('#c-odbox').count())===0)};
  await p.close();}
 R.forEach(r=>console.log(r.join(' | ')));await b.close();})();
