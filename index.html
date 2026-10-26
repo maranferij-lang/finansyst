@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Фінансист у кишені</title>
-<meta name="description" content="Помічник для ФОПа-продавця: конверти, розподіл кожного надходження, прогноз касового розриву і овердрафт в один клік. Прототип команди 3 StartUp Camp.">
-<meta name="theme-color" content="#F4F5F2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0F1110" media="(prefers-color-scheme: dark)">
+<title>Фінансист</title>
+<meta name="description" content="Фінансист: конверти для ФОПа, розподіл кожного надходження, прогноз касового розриву і овердрафт банку-партнера.">
+<meta name="theme-color" content="#F4F4F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E100F" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,314 +15,346 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: desktop = presenter column + phone frame with the app; phone / installed app = the app fills the screen */
+/* Кольори винесені в токени: палітру команди дизайну підставляємо тут, решта стилів не міняється */
 :root{
-  --bg:#ECEFEB; --app:#F7F7F5; --surface:#FFFFFF; --surface-2:#F2F4F1; --ink:#1A1D1B; --muted:#7A817D; --line:#E7E9E4;
-  --accent:#2F8F5E; --accent-ink:#FFFFFF; --accent-soft:#E2F2E5;
-  --warn:#D9822B; --warn-soft:#FFF0E2; --crit:#D2483A; --crit-soft:#FCE6E3; --ok:#3A9A64; --blue:#7C93E6; --blue-soft:#E8ECFB; --violet:#A98BDB; --teal:#3BA7A0; --pending:#D3D7D3;
-  --g-green:linear-gradient(155deg,#DDF1DA 0%,#F2F9EC 45%,#FFFFFF 100%);
-  --g-peach:linear-gradient(155deg,#FFE2C9 0%,#FFF3E8 50%,#FFFFFF 100%);
-  --g-pink:linear-gradient(155deg,#FBD9D8 0%,#FFF0EE 50%,#FFFFFF 100%);
-  --g-blue:linear-gradient(155deg,#DDE4FB 0%,#F1F4FD 50%,#FFFFFF 100%);
-  --shadow:rgba(20,30,25,.16);
+  --page:#E4E6E2; --app:#F4F4F2; --surface:#FFFFFF; --surface-2:#EEEFEC; --ink:#141614; --muted:#6A706C; --faint:#A2A7A3; --line:#E3E5E1;
+  --accent:#1E8C5A; --accent-ink:#FFFFFF; --accent-soft:#E2F1E9;
+  --crit:#D03E30; --crit-soft:#FAE6E3; --warn:#B86E17; --warn-soft:#F9EEDD; --ok:#1E8C5A;
+  --c-tax:#E0A23B; --c-buy:#3C78E8; --c-exp:#8460DE; --c-res:#1FA090; --c-self:#DB5C83;
   --f:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --ease:cubic-bezier(.2,.8,.2,1);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#0B0D0C; --app:#111412; --surface:#191C1A; --surface-2:#202421; --ink:#E8ECE9; --muted:#8E9792; --line:#272C29;
-  --accent:#55C089; --accent-ink:#06120B; --accent-soft:#18301F;
-  --warn:#EFA35A; --warn-soft:#33251A; --crit:#F0796B; --crit-soft:#3A201D; --ok:#62C48C; --blue:#93A8F0; --blue-soft:#1E2436; --violet:#BBA2E8; --teal:#5CC5BD; --pending:#3A403C;
-  --g-green:linear-gradient(155deg,#1E3424 0%,#1A231C 50%,#191C1A 100%);
-  --g-peach:linear-gradient(155deg,#3A2A1C 0%,#251F1A 50%,#191C1A 100%);
-  --g-pink:linear-gradient(155deg,#3D2221 0%,#271D1C 50%,#191C1A 100%);
-  --g-blue:linear-gradient(155deg,#212A44 0%,#1C2030 50%,#191C1A 100%);
-  --shadow:rgba(0,0,0,.5); color-scheme:dark}}
+  --page:#090A09; --app:#0E100F; --surface:#171A18; --surface-2:#1F2320; --ink:#ECEFEC; --muted:#8F9792; --faint:#5C635F; --line:#262B28;
+  --accent:#3FB57C; --accent-ink:#04110A; --accent-soft:#163122;
+  --crit:#EE7466; --crit-soft:#3A1F1C; --warn:#E39E52; --warn-soft:#33261A; --ok:#3FB57C;
+  --c-tax:#E7B157; --c-buy:#6D9BF2; --c-exp:#A88AEE; --c-res:#43BFAE; --c-self:#EA81A2; color-scheme:dark}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
 .num{font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit;cursor:pointer}
-button:disabled{cursor:default;opacity:.55}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{cursor:default;opacity:.5}
+.btn:disabled{background:var(--surface-2);color:var(--muted);opacity:1}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* ---------- desktop shell ---------- */
-.stage{min-height:100%;display:flex;gap:48px;align-items:center;justify-content:center;padding:32px max(24px,env(safe-area-inset-right,0px)) 32px max(24px,env(safe-area-inset-left,0px))}
-.presenter{width:380px;display:flex;flex-direction:column;gap:14px}
-.presenter h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.025em;font-weight:600}
-.presenter .lead{margin:0;color:var(--muted);font-size:14.5px}
-.pbox{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
-.pbox h2{margin:0;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.jsteps{display:flex;flex-direction:column;gap:6px}
-.jstep{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 10px;text-align:left;font-size:13.5px;transition:background .25s,border-color .25s}
+/* ---------- комп'ютер: телефон по центру + панель демо збоку ---------- */
+.stage{min-height:100%;display:flex;gap:40px;align-items:center;justify-content:center;padding:28px 24px}
+.presenter{width:320px;display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.presenter .ph{display:flex;align-items:center;justify-content:space-between}
+.presenter .ph b{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.pbox{background:var(--surface);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pbox h2{margin:0;font-size:12px;font-weight:600;color:var(--muted)}
+.jsteps{display:flex;flex-direction:column;gap:2px}
+.jstep{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;border:0;background:none;border-radius:9px;padding:6px 6px;text-align:left;font-size:13.5px}
 .jstep:hover{background:var(--surface-2)}
-.jstep .n{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--muted);transition:all .3s}
-.jstep.done .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.jstep.next{border-color:var(--accent)}
-.jstep.next .n{border-color:var(--accent);color:var(--accent);animation:pulse 1.6s infinite}
-.jstep small{display:block;color:var(--muted);font-size:12px}
-@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}}
-.card-test{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
-.card-test b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.qrrow{display:flex;gap:14px;align-items:center}
-.qr{background:#fff;padding:7px;border-radius:12px;border:1px solid var(--line);width:110px;height:110px;flex:none}
-.qr img,.qr canvas{width:94px!important;height:94px!important;display:block}
-.linkbtn{border:0;background:none;padding:0;color:var(--accent);font-weight:500;font-size:13px;text-align:left}
+.jstep .n{width:22px;height:22px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--muted)}
+.jstep.done .n{background:var(--accent);color:var(--accent-ink)}
+.jstep.next .n{box-shadow:inset 0 0 0 1.5px var(--accent);color:var(--accent);background:var(--surface)}
+.jstep.now{background:var(--surface-2)}
+.jstep small{display:none}
+.card-test{font-size:12.5px;color:var(--muted);line-height:1.45}
+.card-test b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.qrrow{display:flex;gap:10px;align-items:center}
+.qr{background:#fff;padding:5px;border-radius:8px;width:84px;height:84px;flex:none}
+.qr img,.qr canvas{width:74px!important;height:74px!important;display:block}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);font-weight:500;font-size:13.5px;text-align:left;text-decoration:none}
+.mode{display:inline-flex;background:var(--surface-2);border-radius:9px;padding:2px;font-size:12.5px;align-self:flex-start}
+.mode button{border:0;background:none;padding:4px 10px;border-radius:7px;color:var(--muted);font-weight:500}
+.mode button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.pshow{position:fixed;left:16px;bottom:16px;z-index:5;border:0;background:var(--surface);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+body.nopanel .presenter{display:none}
 
-/* ---------- phone frame + app ---------- */
-.device{width:392px;height:min(844px,calc(100vh - 64px));min-height:640px;border-radius:46px;padding:10px;background:#121513;box-shadow:0 40px 80px -30px var(--shadow),0 0 0 1px rgba(0,0,0,.2);flex:none;position:relative}
-.device::before{content:"";position:absolute;top:18px;left:50%;width:110px;height:30px;border-radius:20px;background:#000;transform:translateX(-50%);z-index:50}
-.app{position:relative;width:100%;height:100%;background:var(--app);border-radius:37px;overflow:hidden;display:flex;flex-direction:column;isolation:isolate}
-.statusbar{height:46px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 4px;font-size:13px;font-weight:600;flex:none}
-.statusbar .sig{display:flex;gap:5px;align-items:center}
-.statusbar .sig i{display:block;width:16px;height:9px;border-radius:2px;border:1.5px solid currentColor;position:relative}
-.statusbar .sig i::after{content:"";position:absolute;inset:1px 4px 1px 1px;background:currentColor;border-radius:1px}
-
+.device{width:390px;height:min(844px,calc(100vh - 56px));min-height:640px;border-radius:48px;padding:9px;background:#0C0D0C;box-shadow:0 30px 70px -30px rgba(0,0,0,.35);flex:none;position:relative}
+.device::before{content:"";position:absolute;top:19px;left:50%;width:108px;height:30px;border-radius:20px;background:#000;transform:translateX(-50%);z-index:50}
+.app{position:relative;width:100%;height:100%;background:var(--app);border-radius:40px;overflow:hidden;display:flex;flex-direction:column;isolation:isolate}
+.statusbar{height:48px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 30px 6px;font-size:14px;font-weight:600;flex:none}
+.statusbar .sig{display:flex;gap:6px;align-items:center}
+.statusbar .sig i{display:block;width:22px;height:11px;border-radius:3px;border:1.5px solid currentColor;position:relative;opacity:.9}
+.statusbar .sig i::after{content:"";position:absolute;inset:1.5px 6px 1.5px 1.5px;background:currentColor;border-radius:1px}
 @media (max-width:820px), (display-mode: standalone){
   body{background:var(--app)}
   .stage{display:block;padding:0}
-  .presenter{display:none}
+  .presenter,.pshow{display:none!important}
   .device{width:100%;height:100dvh;min-height:0;border-radius:0;padding:0;background:none;box-shadow:none}
   .device::before{display:none}
   .app{border-radius:0}
   .statusbar{display:none}
-  .apphd{padding-top:calc(12px + env(safe-area-inset-top,0px))!important}
+  .apphd{padding-top:calc(10px + env(safe-area-inset-top,0px))!important}
 }
 
-/* header */
-.apphd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 18px 10px;flex:none}
-.hello{font-size:13px;color:var(--muted);line-height:1.2}
-.hello b{display:block;font-size:22px;color:var(--ink);font-weight:600;letter-spacing:-.02em;margin-top:2px}
-.hdr{display:flex;gap:8px;align-items:center}
-.icbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;position:relative;flex:none}
-.icbtn svg{width:18px;height:18px}
-.icbtn .badge{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--crit);box-shadow:0 0 0 2px var(--surface)}
-.avatar{width:38px;height:38px;border-radius:50%;background:var(--g-green);display:grid;place-items:center;font-weight:600;font-size:13px;border:1px solid var(--line)}
+/* шапка */
+.apphd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 16px 8px;flex:none}
+.me{display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;text-align:left}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:600;font-size:13px;border:0;flex:none}
+.me .nm{display:block;font-size:15px;font-weight:600;line-height:1.15}
+.me .sb{display:block;font-size:12.5px;color:var(--muted);line-height:1.2}
+.hdr{display:flex;gap:4px;align-items:center}
+.icbtn{width:38px;height:38px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;position:relative;flex:none;color:var(--ink)}
+.icbtn:active{background:var(--surface-2)}
+.icbtn svg{width:22px;height:22px}
+.icbtn .badge{position:absolute;top:7px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--crit);box-shadow:0 0 0 2px var(--app)}
 
-.scr{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 16px 24px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+.scr{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px 28px;-webkit-overflow-scrolling:touch}
 .scr::-webkit-scrollbar{display:none}
 .view{display:flex;flex-direction:column;gap:12px}
-.view.enter>*{animation:rise .45s var(--ease) both}
-.view.enter>*:nth-child(2){animation-delay:.04s}.view.enter>*:nth-child(3){animation-delay:.08s}.view.enter>*:nth-child(4){animation-delay:.12s}.view.enter>*:nth-child(n+5){animation-delay:.16s}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.view.enter{animation:fade .25s both}
 @keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-/* tabs */
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:4px 6px calc(8px + env(safe-area-inset-bottom,0px));flex:none;position:relative;z-index:5}
-.tabs button{border:0;background:none;padding:7px 2px;font-size:11px;font-weight:500;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s}
-.tabs svg{width:22px;height:22px}
-.tabs button[aria-current="page"]{color:var(--accent)}
+/* нижнє меню */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));flex:none;position:relative;z-index:5}
+.tabs button{border:0;background:none;padding:5px 2px;font-size:11px;font-weight:500;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:2px}
+.tabs svg{width:24px;height:24px}
+.tabs button[aria-current="page"]{color:var(--ink)}
 
-/* cards */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:15px 16px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;min-width:0}
-.card.green{background:var(--g-green)}.card.peach{background:var(--g-peach)}.card.pink{background:var(--g-pink)}.card.blue{background:var(--g-blue)}
-.ct{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;font-weight:500;position:relative;z-index:1}
-.ct .sub{color:var(--muted);font-weight:400;font-size:12px}
-.ct>svg{width:18px;height:18px;color:var(--muted);flex:none}
-.big{font-weight:400;font-size:38px;letter-spacing:-.035em;line-height:1;position:relative;z-index:1}
-.big small{font-size:14px;letter-spacing:0;color:var(--muted);margin-left:4px}
-.unit{font-size:12.5px;color:var(--muted);position:relative;z-index:1}
-.small{font-size:12.5px;color:var(--muted)}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);align-self:flex-start;position:relative;z-index:1;white-space:nowrap}
-.chip.crit{background:var(--crit-soft);color:var(--crit)}.chip.warn{background:var(--warn-soft);color:var(--warn)}.chip.blue{background:var(--blue-soft);color:var(--blue)}
-.chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite}
-@keyframes blink{50%{opacity:.25}}
-.deco{position:absolute;right:-40px;top:-10px;width:180px;height:180px;opacity:.5;pointer-events:none}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mini{min-height:132px}
-.mini .big{font-size:28px}
-.btn{border:0;border-radius:14px;padding:13px 16px;font-weight:600;background:var(--ink);color:var(--surface);text-align:center;transition:transform .12s,opacity .2s;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn:active{transform:scale(.98)}
+/* блоки */
+.card,.blk{background:var(--surface);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;position:relative;min-width:0}
+.ct,.bh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.ct .sub,.bh .sub{color:var(--muted);font-weight:400;font-size:13px}
+.ct>svg{width:20px;height:20px;color:var(--faint);flex:none}
+.big{font-weight:600;font-size:30px;letter-spacing:-.02em;line-height:1.05}
+.big small{font-size:17px;font-weight:500;color:var(--muted);margin-left:3px}
+.small{font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:500;padding:3px 8px;border-radius:7px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.chip.crit{background:var(--crit-soft);color:var(--crit)}.chip.warn{background:var(--warn-soft);color:var(--warn)}.chip.grey{background:var(--surface-2);color:var(--muted)}
+.btn{border:0;border-radius:13px;padding:13px 16px;font-weight:600;font-size:15px;background:var(--ink);color:var(--surface);text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .1s}
+.btn:active{transform:scale(.985)}
 .btn.accent{background:var(--accent);color:var(--accent-ink)}
-.btn.crit{background:var(--crit);color:#fff;overflow:hidden}
-.btn.crit::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.25) 50%,transparent 70%);transform:translateX(-100%);animation:sheen 3.4s 1s infinite}
-@keyframes sheen{40%,100%{transform:translateX(100%)}}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
-.tgl{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 10px;cursor:pointer;position:relative;z-index:1}.tgl input{position:absolute;opacity:0;pointer-events:none}.tgl .sw{width:40px;height:24px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}.tgl .sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}.tgl input:checked+.sw{background:var(--accent)}.tgl input:checked+.sw::after{transform:translateX(16px)}.tgl input:focus-visible+.sw{outline:2px solid var(--accent);outline-offset:2px}
-.altrow{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1}.altrow .btn{flex:1 1 140px;background:var(--surface)}.btncol{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-.btn.sm{padding:9px 12px;border-radius:12px;font-size:13px}
-.btn svg{width:17px;height:17px}
+.btn.crit{background:var(--crit);color:#fff}
+.btn.ghost{background:var(--surface-2);color:var(--ink)}
+.btn.sm{padding:9px 12px;border-radius:10px;font-size:14px}
+.btn svg{width:18px;height:18px}
+.btncol{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.altrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tgl{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;padding:4px 0;cursor:pointer;position:relative}
+.tgl input{position:absolute;opacity:0;pointer-events:none}
+.tgl .sw{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s;order:2}
+.tgl .sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.tgl input:checked+.sw{background:var(--accent)}.tgl input:checked+.sw::after{transform:translateX(18px)}
+.tgl input:focus-visible+.sw{outline:2px solid var(--accent);outline-offset:2px}
 
-/* balance hero */
-.hero .big{font-size:44px}
-.spark{width:100%;height:58px;display:block}
-.envstrip{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
-.envstrip::-webkit-scrollbar{display:none}
-.envpill{flex:none;width:118px;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:10px 11px;display:flex;flex-direction:column;gap:6px;text-align:left}
-.envpill .t{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
-.envpill b{font-size:16px;font-weight:500;letter-spacing:-.01em}
-.dotc{width:8px;height:8px;border-radius:3px;display:inline-block;flex:none}
-.bar{height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
-.bar i{display:block;height:100%;border-radius:99px;transition:width .9s var(--ease)}
-
-.bars{display:flex;align-items:flex-end;gap:5px;height:70px}
-.bars i{flex:1;border-radius:4px 4px 2px 2px;background:var(--pending);transform-origin:bottom;animation:barup .7s var(--ease) both}
+/* головна */
+.hero{padding:6px 2px 2px}
+.hero .lab{font-size:13px;color:var(--muted)}
+.hero .v{font-size:38px;font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-top:2px}
+.hero .v small{font-size:22px;font-weight:500;color:var(--muted);margin-left:4px}
+.hero .d{font-size:13px;color:var(--accent);font-weight:500;margin-top:2px}
+.qa{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:2px 0 2px}
+.qa button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--ink);padding:2px 0;line-height:1.15;text-align:center}
+.qa .qi{width:50px;height:50px;border-radius:16px;background:var(--surface);display:grid;place-items:center}
+.qa .qi svg{width:22px;height:22px}
+.qa button.prim .qi{background:var(--ink);color:var(--surface)}
+.note-row{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;background:var(--surface);border-radius:16px;padding:11px 12px}
+.note-row .ni{width:36px;height:36px;border-radius:11px;display:grid;place-items:center}
+.note-row .ni svg{width:19px;height:19px}
+.note-row .t{font-size:14.5px;font-weight:600;line-height:1.25}
+.note-row .s{font-size:13px;color:var(--muted);line-height:1.3}
+.note-row.crit .ni{background:var(--crit-soft);color:var(--crit)}
+.note-row.ok .ni{background:var(--accent-soft);color:var(--accent)}
+.note-row.info .ni{background:var(--surface-2);color:var(--ink)}
+.rows{display:flex;flex-direction:column}
+.envpill{display:grid;grid-template-columns:34px 1fr auto;gap:11px;align-items:center;border:0;background:none;padding:9px 0;text-align:left;border-top:1px solid var(--line);width:100%}
+.envpill:first-child{border-top:0}
+.eic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+.envpill .t{font-size:14.5px;font-weight:500;line-height:1.2}
+.envpill .s{font-size:12.5px;color:var(--muted);line-height:1.25}
+.envpill .s.crit{color:var(--crit)}
+.envpill .a{font-size:15px;font-weight:600;text-align:right;white-space:nowrap}
+.envpill .p{font-size:12px;color:var(--muted);text-align:right}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border-radius:18px;padding:13px 14px;display:flex;flex-direction:column;gap:4px}
+.tile .h{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.tile .h svg{width:18px;height:18px}
+.tile .v{font-size:22px;font-weight:600;letter-spacing:-.01em}
+.tile .v small{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+.tile .s{font-size:12.5px;color:var(--muted);line-height:1.3}
+.bars{display:flex;align-items:flex-end;gap:6px;height:64px}
+.bars i{flex:1;border-radius:5px;background:var(--surface-2);transform-origin:bottom;animation:barup .6s var(--ease) both}
 .bars i.today{background:var(--accent)}
 @keyframes barup{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-.days{display:flex;gap:5px;font-size:10.5px;color:var(--muted)}
+.days{display:flex;gap:6px;font-size:11px;color:var(--muted)}
 .days span{flex:1;text-align:center}
 
 .list{display:flex;flex-direction:column}
-.li{display:grid;grid-template-columns:36px 1fr auto;gap:11px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
-.li:first-child{border-top:0}
-.li .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:10.5px;font-weight:700;letter-spacing:.02em}
-.li .t{font-size:13.5px;font-weight:500;line-height:1.25}
-.li .s{font-size:12px;color:var(--muted)}
-.amt{font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dayh{font-size:12.5px;color:var(--muted);font-weight:500;padding:10px 0 2px}
+.dayh:first-child{padding-top:0}
+.li{display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;padding:9px 0}
+.li .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:.02em}
+.li .t{font-size:14.5px;font-weight:500;line-height:1.25}
+.li .s{font-size:12.5px;color:var(--muted);line-height:1.3}
+.amt{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:14.5px}
 .amt.in{color:var(--ok)}.amt.out{color:var(--ink)}.amt.neg{color:var(--crit)}
 .li.new{animation:newrow 1.6s var(--ease)}
 @keyframes newrow{0%{background:var(--accent-soft)}100%{background:transparent}}
 
-/* envelopes */
-.split{display:flex;height:34px;border-radius:12px;overflow:hidden;gap:3px}
-.split i{display:grid;place-items:center;height:100%;font-style:normal;font-size:11px;font-weight:600;color:rgba(0,0,0,.55);overflow:hidden;white-space:nowrap;transition:flex-grow .45s var(--ease)}
-.envgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.env{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 13px;display:flex;flex-direction:column;gap:7px;position:relative;overflow:hidden;transition:transform .25s var(--ease),box-shadow .3s}
-.env .top{display:flex;justify-content:space-between;align-items:center}
-.env .nm{font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:6px}
-.env .pc{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.env b{font-size:21px;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.env .gl{font-size:11.5px;color:var(--muted);line-height:1.3;min-height:2.6em}
-.env .plus{position:absolute;right:12px;top:34px;font-size:13px;font-weight:600;color:var(--ok);opacity:0}
-.env.bump{transform:scale(1.035);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 55%,transparent)}
+/* конверти */
+.split{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px}
+.split i{height:100%;transition:flex-grow .45s var(--ease)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.envgrid{display:flex;flex-direction:column;gap:8px}
+.env{background:var(--surface);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;position:relative;transition:box-shadow .3s}
+.env .top{display:grid;grid-template-columns:34px 1fr auto;gap:11px;align-items:center}
+.env .nm{font-size:14.5px;font-weight:500;line-height:1.2}
+.env .gl{font-size:12.5px;color:var(--muted);line-height:1.25}
+.env .gl.crit{color:var(--crit)}
+.env b{font-size:16px;font-weight:600;text-align:right;white-space:nowrap}
+.env .pc{display:block;font-size:12px;color:var(--muted);font-weight:400;text-align:right}
+.bar{height:4px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;transition:width .9s var(--ease)}
+.sub2{display:flex;gap:6px;font-size:12.5px;color:var(--muted)}
+.sub2 span{flex:1;background:var(--surface-2);border-radius:9px;padding:6px 9px;line-height:1.25}
+.sub2 b{display:block;font-size:13.5px;color:var(--ink);font-weight:600;text-align:left}
+.env .plus{position:absolute;right:14px;top:-8px;font-size:12.5px;font-weight:600;color:var(--surface);background:var(--ok);border-radius:7px;padding:1px 6px;opacity:0}
+.env.bump{box-shadow:0 0 0 2px var(--accent)}
 .env.bump .plus{animation:plus 1.3s var(--ease)}
-@keyframes plus{0%{opacity:0;transform:translateY(6px)}20%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
-.env.wide{grid-column:1/-1}
-.paybanner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:var(--ink);color:var(--surface);animation:rise .4s var(--ease)}
-.paybanner .coin{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:16px;flex:none}
-.paybanner .t{font-size:12px;opacity:.75}
-.paybanner b{font-size:19px;font-weight:500}
-.flychip{position:absolute;left:0;top:0;z-index:40;padding:4px 9px;border-radius:99px;font-size:11.5px;font-weight:600;color:#fff;pointer-events:none;white-space:nowrap;box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
+@keyframes plus{0%{opacity:0;transform:translateY(4px)}20%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+.paybanner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--ink);color:var(--surface);animation:rise .35s var(--ease)}
+.paybanner .coin{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:16px;flex:none}
+.paybanner .t{font-size:12.5px;opacity:.7}
+.paybanner b{font-size:18px;font-weight:600}
+.flychip{position:absolute;left:0;top:0;z-index:40;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600;color:#fff;pointer-events:none;white-space:nowrap}
 
-/* radar */
+/* радар */
 .chartbox svg{width:100%;height:auto;display:block;overflow:visible}
-.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.3s var(--ease) forwards}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.1s var(--ease) forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
-.scan{position:relative;display:grid;place-items:center;height:120px}
-.scan i{position:absolute;width:40px;height:40px;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:ring 1.6s ease-out infinite}
-.scan i:nth-child(2){animation-delay:.5s}.scan i:nth-child(3){animation-delay:1s}
-.scan b{position:relative;width:14px;height:14px;border-radius:50%;background:var(--accent)}
-@keyframes ring{from{opacity:.8;transform:scale(.4)}to{opacity:0;transform:scale(3.2)}}
-.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{width:16px;height:0;border-top:2px solid var(--blue);display:inline-block}
+.scan{display:flex;align-items:center;gap:12px;padding:10px 0}
+.spin{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--line);border-top-color:var(--ink);animation:spin .8s linear infinite;flex:none}
+.alert-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.alert-card{border-left:3px solid var(--crit)}
 
-/* overlays */
-.sheet{position:absolute;inset:0;z-index:30;background:rgba(10,14,12,.38);display:flex;align-items:flex-end;animation:fade .22s both}
-.sheet.closing{animation:fadeout .22s both}
+/* шторки */
+.sheet{position:absolute;inset:0;z-index:30;background:rgba(8,10,9,.36);display:flex;align-items:flex-end;animation:fade .2s both}
+.sheet.closing{animation:fadeout .2s both}
 @keyframes fadeout{from{opacity:1}to{opacity:0}}
-.panel{width:100%;max-height:92%;overflow-y:auto;background:var(--surface);border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;animation:up .38s var(--ease) both}
-.sheet.closing .panel{animation:down .22s ease-in both}
+.panel{width:100%;max-height:92%;overflow-y:auto;background:var(--surface);border-radius:22px 22px 0 0;padding:8px 18px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;animation:up .32s var(--ease) both}
+.sheet.closing .panel{animation:down .2s ease-in both}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
-@keyframes down{to{transform:translateY(40%);opacity:0}}
-.panel.swap>*{animation:rise .3s var(--ease) both}
-.grab{width:40px;height:4px;border-radius:99px;background:var(--line);align-self:center;margin-bottom:4px}
-.panel h3{margin:0;font-size:19px;font-weight:600;letter-spacing:-.015em;line-height:1.25}
-.lbl{font-size:12px;color:var(--muted);font-weight:500}
-.field{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted)}
-.field input{font:inherit;font-size:20px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+@keyframes down{to{transform:translateY(30%);opacity:0}}
+.panel.swap>*{animation:rise .25s var(--ease) both}
+.grab{width:36px;height:5px;border-radius:99px;background:var(--line);align-self:center;margin-bottom:2px}
+.panel h3{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.lbl{font-size:13px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.field input{font:inherit;font-size:22px;font-weight:600;color:var(--ink);background:var(--surface-2);border:0;border-radius:12px;padding:11px 13px;width:100%}
 .gchips{display:flex;flex-wrap:wrap;gap:6px}
-.gchip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:8px 13px;font-size:13px;transition:all .25s}
-.gchip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-.prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:6px 0;font-size:13.5px}
+.gchip{border:0;background:var(--surface-2);border-radius:10px;padding:8px 12px;font-size:14px}
+.gchip[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:4px 0;font-size:14.5px}
+.prow .hint2{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
 .prow input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
 .prow .v{font-weight:600;font-variant-numeric:tabular-nums}
-.taxline{font-size:12.5px;background:var(--warn-soft);border-radius:12px;padding:9px 12px}
-.selfline{display:flex;justify-content:space-between;font-weight:600;color:var(--ok)}
+.pgroup{background:var(--surface-2);border-radius:12px;padding:8px 12px}
+.pgroup .gh{font-size:13px;font-weight:600;display:flex;justify-content:space-between}
+.taxline{font-size:13px;color:var(--muted)}
+.selfline{display:flex;justify-content:space-between;font-weight:600}
 .selfline.bad{color:var(--crit)}
-.kv{display:grid;grid-template-columns:1fr auto;gap:8px 12px;font-size:13.5px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;font-size:14.5px}
 .kv span:nth-child(odd){color:var(--muted)}
 .kv span:nth-child(even){font-weight:500;text-align:right}
-.stp{display:flex;gap:6px}
-.stp i{flex:1;height:4px;border-radius:99px;background:var(--line);position:relative;overflow:hidden}
-.stp i.on::after{content:"";position:absolute;inset:0;background:var(--accent);animation:fillx .5s var(--ease) both}
-@keyframes fillx{from{transform:translateX(-100%)}to{transform:none}}
+.stp{display:flex;gap:5px}
+.stp i{flex:1;height:3px;border-radius:99px;background:var(--line);position:relative;overflow:hidden}
+.stp i.on::after{content:"";position:absolute;inset:0;background:var(--ink)}
 .checks{display:flex;flex-direction:column;gap:12px;padding:4px 0}
-.checks div{display:flex;align-items:center;gap:10px;font-size:14px;opacity:.35;transition:opacity .3s}
+.checks div{display:flex;align-items:center;gap:10px;font-size:15px;opacity:.35;transition:opacity .3s}
 .checks div.busy,.checks div.done{opacity:1}
-.checks .c{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex:none;transition:background .3s,border-color .3s}
+.checks .c{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex:none}
 .checks div.done .c{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.checks div.busy .c{border-top-color:var(--accent);animation:spin .8s linear infinite}
+.checks div.busy .c{border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.success{width:62px;height:62px;align-self:center}
-.success circle,.success path{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .6s var(--ease) forwards}
-.success path{animation-delay:.45s}
-.note{font-size:12px;color:var(--muted);margin:0}
-.hint{font-size:13px;border-radius:12px;padding:10px 12px;background:var(--warn-soft)}
+.success{width:56px;height:56px;align-self:center}
+.success circle,.success path{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s var(--ease) forwards}
+.success path{animation-delay:.35s}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+.hint{font-size:14px;border-radius:12px;padding:10px 12px;background:var(--warn-soft);line-height:1.35}
+.hint.ok{background:var(--accent-soft)}.hint.crit{background:var(--crit-soft)}
+.paym{display:flex;flex-direction:column;gap:6px}
+.pm{display:grid;grid-template-columns:38px 1fr 20px;gap:10px;align-items:center;border:0;background:var(--surface-2);border-radius:12px;padding:9px 11px;text-align:left;font-size:14.5px}
+.pm .pmi{width:38px;height:26px;border-radius:5px;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff}
+.pm .rd{width:18px;height:18px;border-radius:50%;border:2px solid var(--faint)}
+.pm[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--ink);background:var(--surface)}
+.pm[aria-pressed="true"] .rd{border:5px solid var(--ink)}
+.billbtn{border:0;background:var(--surface-2);border-radius:8px;padding:4px 10px;margin-top:5px;color:var(--ink);font-weight:600;font-size:13px}
+.billst{display:inline-block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:500}
+.paidli .t{color:var(--muted)}
+.ntf{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line);text-align:left;border-left:0;border-right:0;border-bottom:0;background:none;width:100%}
+.ntf:first-child{border-top:0}
+.ntf .ni{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2)}
+.ntf .ni svg{width:18px;height:18px}
+.ntf .t{font-size:14.5px;font-weight:600;line-height:1.25}
+.ntf .s{font-size:13px;color:var(--muted);line-height:1.3}
+.ntf .w{font-size:12px;color:var(--faint)}
 
-.push{position:absolute;left:10px;right:10px;top:calc(8px + env(safe-area-inset-top,0px));z-index:35;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:20px;padding:12px 13px;display:grid;grid-template-columns:38px 1fr;gap:11px;box-shadow:0 18px 40px -18px var(--shadow);text-align:left;animation:pushIn .5s var(--ease) both;cursor:pointer}
-.push.out{animation:pushOut .3s ease-in both}
+/* пуш як системне сповіщення */
+.push{position:absolute;left:8px;right:8px;top:calc(8px + env(safe-area-inset-top,0px));z-index:35;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0;border-radius:22px;padding:11px 13px;display:grid;grid-template-columns:38px 1fr;gap:11px;box-shadow:0 10px 30px -10px rgba(0,0,0,.25);text-align:left;animation:pushIn .45s var(--ease) both;cursor:pointer}
+.push.out{animation:pushOut .28s ease-in both}
 @keyframes pushIn{from{transform:translateY(-140%)}to{transform:none}}
 @keyframes pushOut{to{transform:translateY(-140%);opacity:0}}
-.push .pi{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#2AABEE;color:#fff}
-.push .pi svg{width:20px;height:20px}
-.push .h{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
-.push .b{font-size:13.5px;font-weight:500;line-height:1.35;display:block}
-.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);z-index:36;background:var(--ink);color:var(--surface);border-radius:99px;padding:9px 16px;font-size:13px;white-space:nowrap;animation:rise .3s var(--ease)}
-.hl{animation:hl 2s var(--ease)}
-@keyframes hl{0%,100%{box-shadow:0 0 0 0 transparent}15%,70%{box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 70%,transparent)}}
+.push .pi{width:38px;height:38px;border-radius:9px;overflow:hidden;align-self:center}
+.push .pi img{width:100%;height:100%;display:block}
+.push .h{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between}
+.push .h span:first-child{font-weight:600;color:var(--ink);opacity:.8}
+.push .tt{font-size:14.5px;font-weight:600;line-height:1.3;display:block}
+.push .b{font-size:14px;line-height:1.3;display:block}
+.toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);z-index:36;background:var(--ink);color:var(--surface);border-radius:12px;padding:10px 14px;font-size:14px;white-space:nowrap;animation:rise .25s var(--ease)}
+.hl{animation:hl 1.8s var(--ease)}
+@keyframes hl{0%,100%{box-shadow:0 0 0 0 transparent}15%,70%{box-shadow:0 0 0 2px var(--warn)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
-/* особистий кабінет (демо-вхід) */
-.auth{position:absolute;inset:0;z-index:90;background:var(--app,var(--panel));display:flex;align-items:center;justify-content:center;padding:24px max(20px,env(safe-area-inset-right,0px)) 24px max(20px,env(safe-area-inset-left,0px));animation:fade .25s both;overflow-y:auto}
+/* вхід і профіль */
+.auth{position:absolute;inset:0;z-index:90;background:var(--app);display:flex;align-items:center;justify-content:center;padding:24px 20px;animation:fade .25s both;overflow-y:auto}
 .auth.closing{animation:fadeout .25s both}
-.authbox{width:min(380px,100%);display:flex;flex-direction:column;gap:14px;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
-.authbox .logo{width:56px;height:56px;border-radius:16px}
+.authbox{width:min(380px,100%);display:flex;flex-direction:column;gap:14px}
+.authbox .logo{width:52px;height:52px;border-radius:14px}
 .authbox h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
-.authbox p{margin:0;color:var(--muted);font-size:13.5px}
-.authbox .f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted)}
-.authbox .f input{font:inherit;font-size:18px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;width:100%}
+.authbox p{margin:0;color:var(--muted);font-size:14.5px}
+.authbox .f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.authbox .f input{font:inherit;font-size:18px;color:var(--ink);background:var(--surface);border:0;border-radius:12px;padding:12px 13px;width:100%}
 .authbox .f input.code{letter-spacing:.5em;text-align:center;font-size:24px}
 .authbox .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.authbox .dots{display:flex;gap:6px}.authbox .dots i{flex:1;height:4px;border-radius:99px;background:var(--line)}.authbox .dots i.on{background:var(--accent)}
-.authbox .back{border:0;background:none;color:var(--muted);font-size:13px;text-align:left;padding:0}
-.authbox .demo{font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 11px}
-.avatar{cursor:pointer;border:1px solid var(--line);font-family:inherit;color:var(--ink)}
-.profrow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.authbox .back{border:0;background:none;color:var(--muted);font-size:14px;text-align:left;padding:0}
+.profrow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px;align-items:center}
 .profrow:first-of-type{border-top:0}.profrow span{color:var(--muted)}
-.profhead{display:flex;gap:12px;align-items:center}.profhead .avatar{width:52px;height:52px;font-size:16px;cursor:default}
-.mode{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:12px;align-self:flex-start;margin-bottom:2px}
-.mode button{border:0;background:none;padding:5px 11px;color:var(--muted);font-weight:500}
-.mode button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
-.jstep.now{border-color:var(--accent);background:var(--surface-2)}
-.subs{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;width:min(640px,calc(100vw - 24px));background:var(--ink);color:var(--surface);border-radius:16px;padding:11px 16px 15px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;font-size:14.5px;line-height:1.4;box-shadow:0 16px 40px -16px var(--shadow)}
-.subs .k{font-size:12px;color:color-mix(in srgb,var(--surface) 65%,transparent);font-variant-numeric:tabular-nums}
+.profhead{display:flex;gap:12px;align-items:center}.profhead .avatar{width:52px;height:52px;font-size:17px}
+
+/* субтитри і курсор авто-показу */
+.subs{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;width:min(640px,calc(100vw - 24px));background:#141614;color:#fff;border-radius:14px;padding:11px 16px 15px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;font-size:15px;line-height:1.4;box-shadow:0 16px 40px -16px rgba(0,0,0,.4)}
+.subs .k{font-size:12.5px;opacity:.6;font-variant-numeric:tabular-nums}
 .subs i{position:absolute;left:16px;bottom:6px;height:3px;border-radius:2px;background:var(--accent);width:0}
-.fcur{position:fixed;left:0;top:0;width:22px;height:22px;margin:-4px 0 0 -4px;border-radius:50%;z-index:70;pointer-events:none;opacity:0;background:color-mix(in srgb,var(--accent) 35%,transparent);border:2px solid var(--accent);transition:transform .75s cubic-bezier(.5,0,.2,1),opacity .3s}
+.fcur{position:fixed;left:0;top:0;width:22px;height:22px;margin:-4px 0 0 -4px;border-radius:50%;z-index:70;pointer-events:none;opacity:0;background:rgba(20,22,20,.25);border:2px solid #141614;transition:transform .75s cubic-bezier(.5,0,.2,1),opacity .3s}
 .fcur.on{opacity:1}
 .fcur.clk{animation:fclk .45s ease-out}
 @keyframes fclk{50%{scale:.65}100%{scale:1}}
 @media (max-width:520px){.subs{bottom:76px}}
-.billbtn{border:0;background:none;padding:2px 0 0;color:var(--accent);font-weight:600;font-size:12.5px;cursor:pointer}.billst{display:inline-block;margin-top:2px;font-size:12px;color:var(--accent);font-weight:500}.paidli .t{color:var(--muted)}.paym{display:flex;gap:6px;flex-wrap:wrap}.hint.ok{background:var(--accent-soft)}.hint.crit{background:var(--crit-soft)}
 </style>
 </head>
 <body>
 <div class="stage">
-  <aside class="presenter" aria-label="Сценарій для журі">
-    <h1>Фінансист у кишені</h1>
-    <p class="lead">Помічник для ФОПа-продавця. Кожне надходження одразу розкладається по конвертах, а платіжний радар попереджає про касовий розрив і закриває його овердрафтом банку-партнера.</p>
-    <div class="pbox" id="trial"><h2>Пробний період</h2><span class="small">Ще 14 днів безкоштовно, далі підписка.</span></div>
-    <div class="pbox"><h2>Сценарій для журі</h2><div class="jsteps" id="jsteps-side"></div><button class="linkbtn" data-reset>↺ Скинути демо до початку</button></div>
+  <aside class="presenter" aria-label="Демо для журі">
+    <div class="ph"><b>Демо для журі</b><button class="linkbtn" id="p-hide">Сховати</button></div>
+    <div class="pbox"><h2>Сценарій</h2><div class="jsteps" id="jsteps-side"></div><button class="linkbtn" data-reset>Скинути демо</button></div>
     <div class="pbox"><h2>Тестова оплата WayForPay</h2>
-      <div class="card-test"><span>Режим тестового мерчанта, справжні гроші не списуються.</span><span>Картка <b>4111 1111 1111 1111</b>, термін будь-який у майбутньому, CVV будь-який.</span></div></div>
-    <div class="pbox"><h2>Вебверсія</h2><span class="small">Той самий сервіс як сайт для комп’ютера: дашборд, конверти, радар, операції та інтеграції. Дані спільні з цією версією.</span><a class="linkbtn" href="web/">Відкрити вебверсію →</a></div>
-    <div class="pbox"><h2>Відкрити на телефоні</h2><div class="qrrow"><div class="qr" id="qr"></div>
-      <span class="small">Скануйте камерою і додайте на головний екран: «Поділитися» → «На екран Додому». Відкриється як звичайний застосунок.</span></div></div>
+      <div class="card-test">Картка <b>4111 1111 1111 1111</b>, будь-який термін і CVV. Гроші не списуються.</div></div>
+    <div class="pbox"><h2>Інші версії</h2><a class="linkbtn" href="web/">Вебверсія для комп'ютера</a>
+      <div class="qrrow"><div class="qr" id="qr"></div><span class="small">Відкрити на телефоні і додати на головний екран</span></div></div>
   </aside>
+  <button class="pshow" id="p-show" hidden>Демо для журі</button>
 
   <div class="device">
     <div class="app" id="app">
       <div class="statusbar" aria-hidden="true"><span id="clock">9:41</span><span class="sig"><i></i></span></div>
       <header class="apphd">
-        <div class="hello">Привіт,<b data-hello="">Олено</b></div>
+        <button class="me" data-avatar aria-label="Профіль"><span class="avatar" data-ini>ОК</span><span><span class="nm" data-hello="">Олена</span><span class="sb" data-shop>ФОП · Крок</span></span></button>
         <div class="hdr">
-          <button class="icbtn" id="demo-btn" aria-label="Сценарій для журі"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14l11-7z"/></svg></button>
-          <button class="icbtn" id="bell" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="badge" id="badge" hidden></span></button>
-          <button class="avatar" data-avatar aria-label="Профіль">ОК</button>
+          <button class="icbtn" id="demo-btn" aria-label="Сценарій демо"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z"/></svg></button>
+          <button class="icbtn" id="bell" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="badge" id="badge" hidden></span></button>
         </div>
       </header>
       <main class="scr" id="scr"></main>
@@ -339,14 +371,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 (function(){
 "use strict";
 /* ======================================================================
-   DATA. Хардкод для MVP: дашборд, чеки, посилки. Реальне: розподіл
+   ДАНІ. Хардкод для MVP: дашборд, чеки, посилки. Справжнє: розподіл
    платежу по конвертах (тестовий WayForPay або імітація).
    ====================================================================== */
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString('uk-UA')+' ₴';
 const fmtn=n=>Math.round(n).toLocaleString('uk-UA');
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const MON=['січ','лют','бер','квіт','трав','черв','лип','серп','вер','жовт','лист','груд'];
 const WD=['нд','пн','вт','ср','чт','пт','сб'];
 const today=new Date();today.setHours(0,0,0,0);
 const dayAt=i=>{const d=new Date(today);d.setDate(d.getDate()+i);return d};
@@ -354,82 +385,93 @@ const dm=i=>{const d=dayAt(i);return String(d.getDate()).padStart(2,'0')+'.'+Str
 const wd=i=>WD[dayAt(i).getDay()];
 const inDays=i=>i===0?'сьогодні':i===1?'завтра':`через ${i} ${i<5?'дні':'днів'}`;
 
+/* «Витрати» = операційні (оренда, зарплата, тарифи) + маркетинг. Один баланс, частки задаються окремо */
 const ENVS=[
-  {k:'tax', n:'Податки',          c:'var(--warn)',  get goal(){return S.group==='12'?TAX12+ESV:TAX_Q3+3*ESV}, get gl(){return S.group==='12'?'щомісяця: податок до 1 729,40 + військовий збір 864,70 + ЄСВ 1 902,34 ₴':'податок за III кв. 70 200 ₴ до 19.11 + ЄСВ 1 902,34 ₴/міс (сплата щокварталу до 20-го)'}},
-  {k:'buy', n:'Закупівля товару', c:'var(--accent)',goal:52000, gl:'партія у фабрики-постачальника через 13 днів'},
-  {k:'ops', n:'Операційні',       c:'var(--blue)',  goal:40000, get gl(){return 'оренда складу 40 000 ₴ '+inDays(payDay(0))}},
-  {k:'mkt', n:'Маркетинг',        c:'var(--violet)',goal:18000, gl:'реклама Meta через 10 днів'},
-  {k:'res', n:'Резерв',           c:'var(--teal)',  goal:60000, gl:'подушка на 1 місяць витрат'},
-  {k:'self',n:'Собі',             c:'var(--ok)',    goal:0,     gl:'можна вивести без попередження'},
+  {k:'tax', n:'Податки',          c:'var(--c-tax)', l:'П', get goal(){return S.group==='12'?TAX12+ESV:TAX_Q3+3*ESV}, get gl(){return S.group==='12'?'щомісяця податок, ВЗ і ЄСВ':'до 19.11 · податок за квартал і ЄСВ'}},
+  {k:'buy', n:'Закупівля',        c:'var(--c-buy)', l:'З', goal:52000, gl:'партія постачальнику через 13 днів'},
+  {k:'exp', n:'Витрати',          c:'var(--c-exp)', l:'В', goal:40000, get gl(){return 'оренда 40 000 ₴ '+inDays(payDay(0))}},
+  {k:'res', n:'Резерв',           c:'var(--c-res)', l:'Р', goal:60000, gl:'подушка на місяць'},
+  {k:'self',n:'Собі',             c:'var(--c-self)',l:'С', goal:0,     gl:'вільні гроші'},
 ];
 const ESV=1902.34, TAX_Q3=70200, TAX12=2594.10;   // ЄСВ за себе на місяць; податок за III квартал; 1–2 група: єдиний податок до 1 729,40 + військовий збір 864,70 на місяць
 const SALES_DAY=13000;                       // середні продажі за день (8 тижнів історії)
-const OPS_PAYS=[{d:2,t:'Оренда складу',a:40000},{d:14,t:'Зарплата помічниці',a:15000},{d:19,t:'Тариф Prom.ua',a:4500}];
+const OPS_PAYS=[{id:'o0',d:2,t:'Оренда складу',a:40000},{id:'meta',d:10,t:'Реклама Meta',a:18000},{id:'o1',d:14,t:'Зарплата помічниці',a:15000},{id:'o2',d:19,t:'Тариф Prom.ua',a:4500}];   // платежі з «Витрат»
 const payDay=(j,mv)=>{mv=mv||{};return mv[j]!=null?mv[j]:S.moved&&S.moved[j]!=null?S.moved[j]:OPS_PAYS[j].d};   // платіж можна перенести на іншу дату
 const OD_RATE=.24, OD_SHARE=.30;             // умовні умови овердрафту
 
 const DEF={
   group:'3', pct:{buy:50,ops:12,mkt:15,res:5},
-  bal:{tax:51426,buy:38400,ops:18880,mkt:9600,res:12000,self:6800},
-  tx:[{src:'Checkbox',t:'Каса в магазині, 3 чеки',a:4180,ago:'сьогодні 12:40'},{src:'NovaPay',t:'Кросівки «Ран», 41',a:3100,ago:'сьогодні 11:05'},{src:'Нова пошта',t:'Післяплата, ТТН 2045…118',a:2800,ago:'сьогодні 09:52'},{src:'LiqPay',t:'Лофери «Ліра», 37',a:2800,ago:'вчора 21:17'}],
-  od:0, debt:0, unalloc:0, autoRepay:true, done:{}, alert:false,
+  bal:{tax:51426,buy:38400,exp:28480,res:12000,self:6800},
+  tx:[{src:'Checkbox',t:'Каса в магазині, 3 чеки',a:4180,ago:'сьогодні 12:40',day:0},{src:'NovaPay',t:'Кросівки «Ран», 41',a:3100,ago:'сьогодні 11:05',day:0},{src:'Нова пошта',t:'Післяплата, ТТН 2045…118',a:2800,ago:'сьогодні 09:52',day:0},{src:'LiqPay',t:'Лофери «Ліра», 37',a:2800,ago:'вчора 21:17',day:1}],
+  od:0, debt:0, unalloc:0, autoRepay:true, done:{}, alert:false, notes:[], sysPush:false,
 };
 let S;
-const load=()=>{try{const j=JSON.parse(localStorage.getItem('fk-state')||'null');if(j&&j.v===3)return j.s}catch(e){}return null};
-const save=()=>{try{localStorage.setItem('fk-state',JSON.stringify({v:3,s:S}))}catch(e){}};
+const load=()=>{try{const j=JSON.parse(localStorage.getItem('fk-state')||'null');if(!j)return null;
+  if(j.v===4)return j.s;
+  if(j.v===3){const s=j.s;s.bal.exp=(s.bal.ops||0)+(s.bal.mkt||0);delete s.bal.ops;delete s.bal.mkt;s.moved={};s.paid={};return s}   // старий формат: «Операційні» і «Маркетинг» зливаються у «Витрати»
+}catch(e){}return null};
+const save=()=>{try{localStorage.setItem('fk-state',JSON.stringify({v:4,s:S}))}catch(e){}};
 S=load()||JSON.parse(JSON.stringify(DEF));
-S.unalloc=S.unalloc||0;if(S.debt===undefined)S.debt=S.od||0;if(S.autoRepay===undefined)S.autoRepay=true;
+S.unalloc=S.unalloc||0;if(S.debt===undefined)S.debt=S.od||0;if(S.autoRepay===undefined)S.autoRepay=true;if(!S.notes)S.notes=[];
 
 const taxPct=()=>S.group==='3'?6:S.group==='3v'?4:0;
-const selfPct=()=>100-taxPct()-S.pct.buy-S.pct.ops-S.pct.mkt-S.pct.res;
-const pctOf=k=>k==='tax'?taxPct():k==='self'?Math.max(0,selfPct()):S.pct[k];
+const expPct=()=>S.pct.ops+S.pct.mkt;
+const selfPct=()=>100-taxPct()-S.pct.buy-expPct()-S.pct.res;
+const pctOf=k=>k==='tax'?taxPct():k==='self'?Math.max(0,selfPct()):k==='exp'?expPct():S.pct[k];
 const total=()=>Object.values(S.bal).reduce((a,b)=>a+b,0)+(S.unalloc||0);   // усе, що лежить на рахунку ФОП: конверти + ще не розподілене
 const taxOf=a=>Math.round(a*taxPct()/100);                                                // податок відкладається від повної суми надходження
 const repayOf=a=>S.autoRepay?Math.min(S.debt||0,Math.round(a*OD_SHARE)):0;            // погашення овердрафту: 30% надходження, після податку і до поділу решти
-const firstHint=a=>[taxOf(a)?`податок ${fmt(taxOf(a))}`:'',repayOf(a)?`погашення овердрафту ${fmt(repayOf(a))} (${OD_SHARE*100}%)`:''].filter(Boolean).join(', потім ');
+const expSplit=v=>{const o=S.pct.ops,m=S.pct.mkt,t=o+m||1;return{ops:v*o/t,mkt:v*m/t}};
 
-/* прогноз конверта «Операційні»: щодня приходить його частка продажів, виходять оренда, ЗП, тарифи */
-function forecast(x){x=x||{};const PL=OPS_PAYS.map((p,j)=>({...p,j,d:payDay(j,x.move)})).filter(p=>!(S.paid&&S.paid['o'+p.j]==='paid'));   // сплачене із застосунку вже списано з конверта
-  const tp=taxPct()/100,k=S.pct.ops/100/(1-tp);let debt=(S.debt||0)+(x.debt||0);const ua=S.unalloc||0,pend=ua-taxOf(ua)-repayOf(ua);debt-=repayOf(ua);
-  let b=S.bal.ops+pend*k+(x.ops||0);const days=[];let inflow0=null;
+/* прогноз конверта «Витрати»: щодня приходить його частка продажів, виходять оренда, реклама, ЗП, тарифи
+   x.add: докласти гроші зараз; x.debt: додати борг; x.move: перенести платіж; x.now: оплатити платіж сьогодні */
+function forecast(x){x=x||{};
+  const PL=OPS_PAYS.map((p,j)=>({...p,j,d:x.now===p.id?0:payDay(j,x.move)})).filter(p=>!(S.paid&&S.paid[p.id]==='paid'));   // сплачене із застосунку вже списано з конверта
+  const tp=taxPct()/100,k=expPct()/100/(1-tp);let debt=(S.debt||0)+(x.debt||0);const ua=S.unalloc||0,pend=ua-taxOf(ua)-repayOf(ua);debt-=repayOf(ua);
+  let b=S.bal.exp+pend*k+(x.add||0);const days=[];let inflow0=null;
   for(let i=0;i<30;i++){const pays=PL.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
     const rp=S.autoRepay?Math.min(debt,SALES_DAY*OD_SHARE):0;debt-=rp;const inflow=(SALES_DAY*(1-tp)-rp)*k;if(inflow0===null)inflow0=inflow;b=low+inflow;days.push({i,low,end:b,pays})}
-  const inflow=inflow0;
   const g=days.find(d=>d.low<0);   // овердрафт береться рівно на дефіцит першого розриву (специфікація команди)
-  // сума овердрафту покриває найглибшу точку, щоб після нього в прогнозі не лишилось жодного розриву
-  return{days,gap:g?{i:g.i,need:-g.low,first:-g.low,pay:g.pays[0]}:null,inflow};
+  return{days,gap:g?{i:g.i,need:-g.low,first:-g.low,pay:g.pays[0]}:null,inflow:inflow0};
 }
 
 /* ======================================================================
-   ICONS + helpers
+   ІКОНКИ + допоміжне
    ====================================================================== */
 const IC={
- home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
- env:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 8l9 6 9-6"/>',
- radar:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12l6-6"/>',
- ops:'<path d="M4 7h16M4 12h16M4 17h10"/>',
+ home:'<path d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/>',
+ env:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18"/><path d="M7 14h4"/>',
+ radar:'<path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/>',
+ ops:'<path d="M5 6h14M5 12h14M5 18h9"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
+ down:'<path d="M12 4v13M6 11l6 6 6-6"/><path d="M5 20h14"/>',
+ split:'<path d="M12 3v6M12 9l-6 6M12 9l6 6M6 15v5M18 15v5"/>',
+ bill:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
  card:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/>',
- sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
- tg:'<path d="M21 4L3 11l6 2 2 6 3-4 5 4z" fill="currentColor" stroke="none"/>',
+ bolt:'<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>',
+ warn:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
+ check:'<path d="M5 12l5 5 9-10"/>',
  box:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
- bolt:'<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>'
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+ arrow:'<path d="M9 6l6 6-6 6"/>'
 };
 const ic=(k,w=1.8)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
-const SRC={Checkbox:['CB','var(--surface-2)','var(--muted)'],NovaPay:['NP','#E9F1FE','#2B6CD9'],'Нова пошта':['НП','#FDE8E8','#D1342A'],LiqPay:['LQ','#E7F5EA','#1F8A45'],WayForPay:['WFP','#E8ECFB','#3A55C8'],'Імітація':['SIM','var(--surface-2)','var(--muted)'],'Raiffeisen':['RB','#FFF6CC','#7A6400']};
-const srcIc=s=>{const x=SRC[s]||['··','var(--surface-2)','var(--muted)'];return `<span class="ic" style="background:${x[1]};color:${x[2]}">${x[0]}</span>`};
+const SRC={Checkbox:['CB','#EDEEEB','#3F4542'],NovaPay:['NP','#E5EEFD','#2457C5'],'Нова пошта':['НП','#FCE7E5','#C9302A'],LiqPay:['LP','#E4F3E8','#1B7A3E'],WayForPay:['WFP','#E8EBFA','#3A4FB8'],'Імітація':['ТП','#EDEEEB','#3F4542'],'Raiffeisen':['RB','#FFF4B8','#5E4D00'],'Банк':['RB','#FFF4B8','#5E4D00']};
+const srcIc=s=>{const x=SRC[s]||['··','#EDEEEB','#3F4542'];return `<span class="ic" style="background:${x[1]};color:${x[2]}">${x[0]}</span>`};
+const srcName=s=>s==='Імітація'?'Тестовий платіж':s==='Raiffeisen'?'Райффайзен Банк':s;
 const lastNum={};
 function countUp(el,to,key){if(!el)return;const from=lastNum[key]??to;lastNum[key]=to;if(RM||from===to){el.textContent=fmtn(to);return}
-  const t0=performance.now(),dur=900;(function f(t){const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=fmtn(from+(to-from)*e);if(k<1)requestAnimationFrame(f)})(t0)}
-function rings(c){return `<svg class="deco" viewBox="0 0 200 200" fill="none" stroke="${c}" stroke-width="1">${[90,72,54,36].map(r=>`<circle cx="100" cy="100" r="${r}" opacity="${(1-r/120).toFixed(2)}"/>`).join('')}</svg>`}
+  const t0=performance.now(),dur=800;(function f(t){const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=fmtn(from+(to-from)*e);if(k<1)requestAnimationFrame(f)})(t0)}
 function flash(id){const el=$(id);if(!el)return;el.classList.remove('hl');void el.offsetWidth;el.classList.add('hl');const sc=$('scr'),r=el.getBoundingClientRect(),b=sc.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom)sc.scrollTo({top:sc.scrollTop+r.top-b.top-12,behavior:RM?'auto':'smooth'})}
-function toast(t){const L=$('layer');const d=document.createElement('div');d.className='toast';d.textContent=t;L.appendChild(d);setTimeout(()=>d.remove(),2200)}
+function toast(t){const L=$('layer');L.querySelectorAll('.toast').forEach(x=>x.remove());const d=document.createElement('div');d.className='toast';d.textContent=t;L.appendChild(d);setTimeout(()=>d.remove(),2200)}
+const parseAmt=v=>{const n=parseInt(String(v).replace(/[^\d]/g,''),10);return isNaN(n)?0:n};   // «2 400», «2400», «2 400 ₴» → 2400
 
 /* ======================================================================
-   TABS + RENDER
+   МЕНЮ + РЕНДЕР
    ====================================================================== */
-const TABS=[['home','Головна','home'],['env','Конверти','env'],['radar','Радар','radar'],['ops','Операції','ops']];
+const TABS=[['home','Головна','home'],['env','Конверти','env'],['radar','Прогноз','radar'],['ops','Операції','ops']];
 $('tabs').innerHTML=TABS.map(([k,n,i])=>`<button data-tab="${k}">${ic(i)}${n}</button>`).join('');
 let tab='home';
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
@@ -438,124 +480,113 @@ function render(anim){
   const html={home:homeHTML,env:envHTML,radar:radarHTML,ops:opsHTML}[tab]();
   $('scr').innerHTML=`<div class="view${anim?' enter':''}">${html}</div>`;
   ({home:homeAfter,env:envAfter,radar:radarAfter,ops:()=>{}})[tab]();
-  $('badge').hidden=!S.alert;paintSteps();save();
+  $('badge').hidden=!(S.alert||S.notes.some(n=>!n.read));paintSteps();save();
 }
 
-/* ---------- HOME: заповнений дашборд ---------- */
+/* ---------- ГОЛОВНА ---------- */
 const WEEK=[21380,18940,25300,19870,23410,31200];   // хардкод: продажі за 6 попередніх днів
+function envRow(e,gap){const bal=S.bal[e.k];const warn=e.k==='self'&&gap;
+  return `<button class="envpill" data-go="env"><span class="eic" style="background:${e.c}">${e.l}</span><span><span class="t">${e.n}</span><span class="s${warn?' crit':''}" style="display:block">${warn?'є розрив '+dm(gap.i)+', краще не виводити':e.gl}</span></span><span><span class="a num" style="display:block">${fmt(bal)}</span><span class="p" style="display:block">${pctOf(e.k)}%</span></span></button>`}
 function homeHTML(){
-  const tot=total(),f=forecast();
+  const tot=total(),f=forecast(),gap=f.gap;
   const week=WEEK.concat([S.todaySales||14760]);const mx=Math.max(...week);
-  const gap=f.gap;
-  const envs=ENVS.map(e=>`<button class="envpill" data-go="env"><span class="t"><span class="dotc" style="background:${e.c}"></span>${e.n}</span><b class="num">${fmtn(S.bal[e.k])}</b>${e.goal?`<span class="bar"><i style="width:${Math.min(100,S.bal[e.k]/e.goal*100)}%;background:${e.c}"></i></span>`:gap?'<span class="small" style="font-size:11px;color:var(--crit)">є розрив, краще не виводити</span>':'<span class="small" style="font-size:11px">вільні гроші</span>'}</button>`).join('');
+  const sp=spendInfo();
   return `
-  <div class="card green hero" id="c-total">${rings('var(--accent)')}
-    <div class="ct">Гроші бізнесу<span class="chip">+12% за тиждень</span></div>
-    <div class="big num"><span id="tot">${fmtn(tot)}</span><small>₴</small></div>
-    <div class="unit">Гроші лежать на вашому рахунку ФОП, конверти ділять їх віртуально</div>
-    ${sparkSVG()}
+  <section class="hero" id="c-total"><div class="lab">Рахунок ФОП · Райффайзен Банк</div>
+    <div class="v num"><span id="tot">${fmtn(tot)}</span><small>₴</small></div><div class="d">+12% за тиждень</div></section>
+  <div class="qa">
+    <button class="prim" id="pay-home"><span class="qi">${ic('down')}</span>Прийняти оплату</button>
+    <button id="qa-split"><span class="qi">${ic('split')}</span>Розподілити</button>
+    <button id="qa-bills"><span class="qi">${ic('bill')}</span>Платежі</button>
+    <button id="qa-radar"><span class="qi">${ic('radar')}</span>Прогноз</button>
   </div>
-  ${S.unalloc>0?`<div class="card blue" id="c-unalloc">${rings('var(--blue)')}<div class="ct">Ще не розподілено<span class="chip blue">на рахунку</span></div>
-      <div class="big num" style="font-size:30px">+${fmtn(S.unalloc)}<small>₴</small></div>
-      ${repayOf(S.unalloc)?`<div class="small" style="position:relative">Спершу ${firstHint(S.unalloc)}</div>`:''}
-      <button class="btn accent sm" id="split-home">Поділити по конвертах</button></div>`:''}
-  <div class="envstrip">${envs}</div>
-  <div class="card green" id="c-spend">${rings('var(--accent)')}<div class="ct">Можна витратити на себе<span class="chip${gap?' crit':''}">${gap?'є розрив':'безпечно'}</span></div>
-      <div class="big num">${fmtn(spendInfo().safe)}<small>₴</small></div>
-      <div class="small" style="position:relative">${gap?`Є касовий розрив ${dm(gap.i)}: краще не виводити, поки його не закрито. У конверті «Собі» ${fmt(S.bal.self)}.`:`Конверт «Собі», ${pctOf('self')}% з надходжень: усі платежі на 30 днів покриті.`}</div>
-      <button class="btn ghost sm" id="spend-open">Вивести собі</button></div>
-  ${gap?`<div class="card pink" id="c-gap">${rings('var(--crit)')}
-      <div class="ct">Платіжний радар<span class="chip crit"><span class="dot"></span>${inDays(gap.i)}</span></div>
-      <div class="small" style="position:relative">${gap.pay.t} ${fmt(gap.pay.a)} ${wd(gap.i)} ${dm(gap.i)}. У конверті «Операційні» ${fmt(S.bal.ops)}.</div>
-      <button class="btn crit sm" id="run-radar">${ic('bolt')}Запустити платіжний радар</button></div>`
-   :`<div class="card green" id="c-gap">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">розривів немає</span></div>
-      <div class="small" style="position:relative">На 30 днів уперед усі платежі з конверта «Операційні» покриті${S.debt>0?`. Борг за овердрафтом ${fmt(S.debt)}: ${S.autoRepay?`спершу податок, потім ${OD_SHARE*100}% надходження йде на погашення, решта ділиться по конвертах`:'автопогашення вимкнене, погасити можна на вкладці «Радар»'}`:''}.</div></div>`}
-  <div class="grid2">
-    <div class="card mini blue" id="c-np"><div class="ct">Нова пошта${ic('box')}</div><div class="big num">7<small>у дорозі</small></div><div class="small">3 післяплати на 8 900 ₴ прийдуть сюди ж</div></div>
-    <div class="card mini peach" id="c-cb"><div class="ct">Каса Checkbox${ic('receipt')}</div><div class="big num">14<small>чеків</small></div><div class="small">сьогодні на 21 380 ₴, середній чек 1 527 ₴</div></div>
+  ${S.unalloc>0?`<div class="note-row info" id="c-unalloc"><span class="ni">${ic('split')}</span><span><span class="t" style="display:block">Не розподілено ${fmt(S.unalloc)}</span><span class="s" style="display:block">${repayOf(S.unalloc)?'Спершу податок і погашення овердрафту':'Розкласти по конвертах'}</span></span><button class="btn sm accent" id="split-home">Розподілити</button></div>`:''}
+  ${gap?`<div class="note-row crit" id="c-gap"><span class="ni">${ic('warn')}</span><span><span class="t" style="display:block">Не вистачить ${fmt(gap.need)} ${wd(gap.i)} ${dm(gap.i)}</span><span class="s" style="display:block">${gap.pay.t}, ${fmt(gap.pay.a)}</span></span><button class="btn sm crit" id="run-radar">Що робити</button></div>`
+   :`<div class="note-row ok" id="c-gap"><span class="ni">${ic('check')}</span><span><span class="t" style="display:block">На 30 днів усе покрито</span><span class="s" style="display:block">${S.debt>0?`Овердрафт ${fmt(S.debt)}${S.autoRepay?', гаситься з надходжень':''}`:'Розривів у платежах немає'}</span></span><span></span></div>`}
+  <section class="blk"><div class="bh">Конверти<button class="linkbtn" data-go="env">Усі</button></div>
+    <div class="rows">${ENVS.map(e=>envRow(e,gap)).join('')}</div></section>
+  <section class="blk" id="c-spend"><div class="bh">Можна вивести собі${gap?'<span class="chip crit">є розрив</span>':'<span class="chip">безпечно</span>'}</div>
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="big num">${fmtn(sp.safe)}<small>₴</small></div><button class="btn sm ghost" id="spend-open">Вивести</button></div>
+    ${gap?`<div class="small">У «Собі» ${fmt(S.bal.self)}, але ${dm(gap.i)} не вистачить на оренду</div>`:''}</section>
+  <div class="tiles">
+    <div class="tile" id="c-np"><div class="h">Нова пошта${ic('box')}</div><div class="v num">7<small>у дорозі</small></div><div class="s">3 післяплати на 8 900 ₴</div></div>
+    <div class="tile" id="c-cb"><div class="h">Каса Checkbox${ic('receipt')}</div><div class="v num">14<small>чеків</small></div><div class="s">сьогодні 21 380 ₴</div></div>
   </div>
-  <div class="card" id="c-sales"><div class="ct">Продажі за тиждень<span class="sub">усі майданчики</span></div>
-    <div class="row" style="align-items:baseline"><div class="big num" style="font-size:30px">${fmtn(week.reduce((a,b)=>a+b,0))}<small>₴</small></div><span class="chip">+8% до минулого</span></div>
-    <div class="bars">${week.map((v,i)=>`<i class="${i===6?'today':''}" style="height:${(v/mx*100).toFixed(0)}%;animation-delay:${i*50}ms"></i>`).join('')}</div>
-    <div class="days">${week.map((v,i)=>`<span>${i===6?'сьогодні':wd(i-6)}</span>`).join('')}</div>
-  </div>
-  <div class="card"><div class="ct">Останні надходження<button class="linkbtn" data-go="ops">Усі</button></div>
-    <div class="list">${S.tx.slice(0,4).map((x,j)=>`<div class="li${x.fresh&&j===0?' new':''}">${srcIc(x.src)}<div><div class="t">${x.t}</div><div class="s">${x.src} · ${x.ago}</div></div><span class="amt in">+${fmt(x.a)}</span></div>`).join('')}</div>
-  </div>
-  <button class="btn accent" id="pay-home">${ic('card')}Імітувати вхідний платіж</button>`;
+  <section class="blk" id="c-sales"><div class="bh">Продажі за тиждень<span class="sub">+8%</span></div>
+    <div class="big num">${fmtn(week.reduce((a,b)=>a+b,0))}<small>₴</small></div>
+    <div class="bars">${week.map((v,i)=>`<i class="${i===6?'today':''}" style="height:${(v/mx*100).toFixed(0)}%;animation-delay:${i*40}ms"></i>`).join('')}</div>
+    <div class="days">${week.map((v,i)=>`<span>${i===6?'сьогодні':wd(i-6)}</span>`).join('')}</div></section>
+  <section class="blk"><div class="bh">Надходження<button class="linkbtn" data-go="ops">Усі</button></div>
+    <div class="list">${S.tx.slice(0,4).map((x,j)=>txRow(x,j)).join('')}</div></section>`;
 }
-function sparkSVG(){
-  const pts=[52,54,51,57,60,58,63,61,66,64,70,69,73,75,78];const W=300,H=58,mx=80,mn=45;
-  const d=pts.map((v,i)=>(i?'L':'M')+(i/(pts.length-1)*W).toFixed(1)+','+(H-(v-mn)/(mx-mn)*H).toFixed(1)).join('');
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" style="position:relative;z-index:1"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" pathLength="1" class="draw"/></svg>`;
-}
+const txRow=(x,j)=>`<div class="li${x.fresh&&j===0?' new':''}">${srcIc(x.src)}<div><div class="t">${x.t}</div><div class="s">${srcName(x.src)} · ${x.ago.replace(/^(сьогодні|вчора) /,'')}</div></div><span class="amt in">+${fmt(x.a)}</span></div>`;
 function homeAfter(){
   countUp($('tot'),total(),'tot');
   document.querySelectorAll('#scr [data-go]').forEach(b=>b.onclick=()=>setTab(b.dataset.go));
   const r=$('run-radar');if(r)r.onclick=()=>{setTab('radar');setTimeout(runRadar,350)};
-  const sp=$('spend-open');if(sp)sp.onclick=openWithdraw;
+  $('spend-open').onclick=openWithdraw;
   $('pay-home').onclick=openPay;
+  $('qa-split').onclick=()=>{setTab('env');if(S.unalloc>0)setTimeout(splitNow,450);else setTimeout(()=>toast('Усі гроші вже розподілено'),300)};
+  $('qa-bills').onclick=()=>{setTab('radar');setTimeout(()=>flash('c-cal'),300)};
+  $('qa-radar').onclick=()=>setTab('radar');
   const sh=$('split-home');if(sh)sh.onclick=()=>{setTab('env');setTimeout(splitNow,450)};
 }
 
-/* ---------- ENVELOPES: відсотки + конверти з балансами ---------- */
+/* ---------- КОНВЕРТИ ---------- */
 function pendingHTML(){
-  if(!(S.unalloc>0))return '';const rp=repayOf(S.unalloc),last=S.tx.find(x=>x.src!=='Raiffeisen');
-  return `<div class="card blue" id="c-pending">${rings('var(--blue)')}<div class="ct">На рахунку, ще не розподілено<span class="chip blue">крок 4</span></div>
-    <div class="big num" style="font-size:32px">+${fmtn(S.unalloc)}<small>₴</small></div>
-    <div class="small" style="position:relative">${last?`Останнє: ${last.t}, ${last.src}. `:''}${rp?`Спершу ${firstHint(S.unalloc)}, решта ${fmt(S.unalloc-taxOf(S.unalloc)-rp)} розкладеться за відсотками.`:'Гроші вже на рахунку ФОП. Натисніть, і вони розкладуться за вашими відсотками.'}</div>
-    <button class="btn accent" id="split-now">Поділити по конвертах</button></div>`;
+  if(!(S.unalloc>0))return '';const ua=S.unalloc,rp=repayOf(ua),tx=taxOf(ua);
+  const steps=[tx?`податок ${fmt(tx)}`:'',rp?`погашення овердрафту ${fmt(rp)}`:'',`по конвертах ${fmt(ua-tx-rp)}`].filter(Boolean).join(' · ');
+  return `<div class="card" id="c-pending"><div class="ct">Не розподілено<span class="chip grey">на рахунку</span></div>
+    <div class="big num">+${fmtn(ua)}<small>₴</small></div>
+    <div class="small">${steps}</div>
+    <button class="btn accent" id="split-now">Розподілити</button></div>`;
 }
 function envHTML(){
   const f=forecast();
   const parts=ENVS.map(e=>[e,pctOf(e.k)]).filter(x=>x[1]>0);
   return `
   <div id="paybox">${pendingHTML()}</div>
-  <div class="card" id="c-split"><div class="ct">Розподіл кожного надходження<button class="linkbtn" id="edit-pct">Змінити %</button></div>
-    <div class="split">${parts.map(([e,p])=>`<i style="flex-grow:${p};background:${e.c}">${p>=8?p+'%':''}</i>`).join('')}</div>
-    <div class="small">Податок ${taxPct()?taxPct()+'% рахується за групою ФОП автоматично':'для 1–2 групи фіксований (єдиний податок до 1 729,40 ₴ і військовий збір 864,70 ₴ на місяць), відкладаємо окремою ціллю'}. Решту налаштовуєте ви.</div>
+  <div class="card" id="c-split"><div class="ct">Як ділиться кожне надходження<button class="linkbtn" id="edit-pct">Змінити</button></div>
+    <div class="split">${parts.map(([e,p])=>`<i style="flex-grow:${p};background:${e.c}"></i>`).join('')}</div>
+    <div class="legend">${parts.map(([e,p])=>`<span><i style="background:${e.c}"></i>${e.n} ${p}%</span>`).join('')}</div>
   </div>
-  <div class="envgrid" id="envgrid">${ENVS.map(e=>`
-    <div class="env${e.k==='self'?'':''}" id="env-${e.k}"><span class="plus" id="plus-${e.k}"></span>
-      <div class="top"><span class="nm"><span class="dotc" style="background:${e.c}"></span>${e.n}</span><span class="pc">${pctOf(e.k)}%</span></div>
-      <b class="num"><span id="bal-${e.k}">${fmtn(S.bal[e.k])}</span> <span class="small">₴</span></b>
+  <div class="envgrid" id="envgrid">${ENVS.map(e=>{const warn=e.k==='self'&&f.gap,sp=e.k==='exp'?expSplit(S.bal.exp):null;return `
+    <div class="env" id="env-${e.k}"><span class="plus" id="plus-${e.k}"></span>
+      <div class="top"><span class="eic" style="background:${e.c}">${e.l}</span><span><span class="nm" style="display:block">${e.n}</span><span class="gl${warn?' crit':''}" style="display:block">${warn?`є розрив ${dm(f.gap.i)}, краще не виводити`:e.gl}</span></span><b class="num"><span id="bal-${e.k}">${fmtn(S.bal[e.k])}</span> ₴<span class="pc">${pctOf(e.k)}%</span></b></div>
       ${e.goal?`<span class="bar"><i id="bar-${e.k}" style="width:${Math.min(100,S.bal[e.k]/e.goal*100)}%;background:${e.c}"></i></span>`:''}
-      <span class="gl"${e.k==='self'&&f.gap?' style="color:var(--crit)"':''}>${e.k==='self'&&f.gap?`Є касовий розрив ${dm(f.gap.i)}: краще не виводити, поки його не закрито`:e.gl}</span></div>`).join('')}
+      ${sp?`<div class="sub2"><span>Операційні · ${S.pct.ops}%<b class="num" id="sub-ops">${fmt(sp.ops)}</b></span><span>Маркетинг · ${S.pct.mkt}%<b class="num" id="sub-mkt">${fmt(sp.mkt)}</b></span></div>`:''}</div>`}).join('')}
   </div>
-  <button class="btn accent" id="pay-env">${ic('card')}Вхідний платіж</button>
-  <p class="note">Тестова оплата йде через WayForPay у режимі тестового мерчанта. Справжні гроші не списуються.</p>`;
+  <button class="btn accent" id="pay-env">${ic('down')}Прийняти оплату</button>`;
 }
 function envAfter(){$('edit-pct').onclick=openPct;$('pay-env').onclick=openPay;const sn=$('split-now');if(sn)sn.onclick=splitNow;ENVS.forEach(e=>{lastNum['bal-'+e.k]=S.bal[e.k]})}
 
-/* ---------- RADAR ---------- */
+/* ---------- ПРОГНОЗ ---------- */
 function radarHTML(){
   const f=forecast();
   return `
-  <div class="card" id="c-chart"><div class="ct">Конверт «Операційні», прогноз на 30 днів${f.gap?'<span class="chip crit">розрив</span>':'<span class="chip">без розривів</span>'}</div>
+  <div class="card" id="c-chart"><div class="ct">Витрати на 30 днів${f.gap?'<span class="chip crit">розрив</span>':'<span class="chip">без розривів</span>'}</div>
     <div class="chartbox">${chartSVG(f)}</div>
-    <div class="legend"><span><i></i>залишок у конверті</span><span>щодня +${fmt(f.inflow)} з продажів</span></div>
+    <div class="small">Щодня приходить ≈ ${fmt(f.inflow)} з продажів</div>
   </div>
-  <div id="radarbox">${f.gap?`<div class="card pink" id="c-radar">${rings('var(--crit)')}<div class="ct">Платіжний радар<span class="sub">перевіряє 30 днів уперед</span></div>
-      <div class="small" style="position:relative">Шукає дні, коли платежу не вистачить грошей у конверті.</div>
-      <button class="btn crit" id="run">${ic('bolt')}Запустити радар</button></div>`
-    :`<div class="card green" id="c-radar">${rings('var(--accent)')}<div class="ct">Платіжний радар<span class="chip">усе покрито</span></div><div class="small" style="position:relative">${S.debt>0?'На 30 днів уперед розривів немає.':S.od?'Овердрафт погашено. На 30 днів уперед розривів немає.':'На 30 днів уперед розривів немає.'}</div></div>`}</div>${odBoxHTML()}
+  <div id="radarbox">${f.gap?`<div class="card" id="c-radar"><div class="ct">Перевірка платежів<span class="sub">30 днів</span></div>
+      <div class="small">Звіримо платежі з очікуваними надходженнями</div>
+      <button class="btn" id="run">${ic('radar')}Перевірити</button></div>`
+    :`<div class="card" id="c-radar"><div class="ct">Перевірка платежів<span class="chip">усе покрито</span></div><div class="small">${S.od&&!S.debt?'Овердрафт погашено. ':''}На 30 днів розривів немає</div></div>`}</div>${odBoxHTML()}
   ${calHTML(f)}`;
 }
 function chartSVG(f){
-  const W=340,H=170,pl=36,pr=8,pt=12,pb=22,N=30,dx=(W-pl-pr)/N;
-  const vs=[S.bal.ops];f.days.forEach(d=>vs.push(d.low,d.end));
+  const W=340,H=160,pl=34,pr=6,pt=10,pb=20,N=30,dx=(W-pl-pr)/N;
+  const vs=[S.bal.exp];f.days.forEach(d=>vs.push(d.low,d.end));
   let mn=Math.min(0,...vs),mx=Math.max(...vs);const st=mx-mn>120000?40000:20000;mn=Math.floor(mn/st)*st;mx=Math.ceil(mx/st)*st;
   const X=i=>pl+dx*i,Y=v=>pt+(H-pt-pb)*(mx-v)/(mx-mn),y0=Y(0);
   let d=`M${X(0)},${Y(vs[0])}`;f.days.forEach((x,i)=>{d+=`L${X(i).toFixed(1)},${Y(x.low).toFixed(1)}L${X(i+1).toFixed(1)},${Y(x.end).toFixed(1)}`});
   let grid='';for(let v=mn;v<=mx;v+=st)grid+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${pl-5}" y="${Y(v)+3.5}" text-anchor="end" font-size="9.5" fill="var(--muted)">${v/1000}k</text>`;
-  let xt='';[0,7,14,21,28].forEach(i=>xt+=`<text x="${X(i)+dx/2}" y="${H-6}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${dm(i)}</text>`);
-  const g=f.gap;const gm=g?`<circle cx="${X(g.i)}" cy="${Y(-g.first)}" r="5" fill="var(--crit)" stroke="var(--surface)" stroke-width="1.5"/><rect x="${Math.min(X(g.i)+7,W-54)}" y="${Y(-g.first)-8}" width="48" height="17" rx="8.5" fill="var(--crit)"/><text x="${Math.min(X(g.i)+7,W-54)+24}" y="${Y(-g.first)+4}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">−${(Math.round(g.first/100)/10).toLocaleString('uk-UA')}k</text>`:'';
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Прогноз залишку в конверті Операційні на 30 днів"><defs><clipPath id="cp"><rect x="0" y="-10" width="${W}" height="${y0+10}"/></clipPath><clipPath id="cn"><rect x="0" y="${y0}" width="${W}" height="${H}"/></clipPath>
-   <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--blue)" stop-opacity=".28"/><stop offset="1" stop-color="var(--blue)" stop-opacity="0"/></linearGradient></defs>
-   ${grid}<rect x="${pl}" y="${y0}" width="${W-pl-pr}" height="${Math.max(0,Y(mn)-y0)}" fill="var(--crit-soft)" opacity=".8"/>
-   <path d="${d}L${X(N)},${y0}L${X(0)},${y0}Z" fill="url(#ga)" clip-path="url(#cp)"/>
-   <path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2" clip-path="url(#cp)" pathLength="1" class="draw"/>
-   <path d="${d}" fill="none" stroke="var(--crit)" stroke-width="2" clip-path="url(#cn)" pathLength="1" class="draw"/>${gm}${xt}</svg>`;
+  let xt='';[0,7,14,21,28].forEach(i=>xt+=`<text x="${X(i)+dx/2}" y="${H-5}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${dm(i)}</text>`);
+  const g=f.gap;const gm=g?`<circle cx="${X(g.i)}" cy="${Y(-g.first)}" r="4.5" fill="var(--crit)" stroke="var(--surface)" stroke-width="1.5"/><text x="${Math.min(X(g.i)+8,W-40)}" y="${Y(-g.first)+4}" font-size="10.5" font-weight="600" fill="var(--crit)">−${(Math.round(g.first/100)/10).toLocaleString('uk-UA')}k</text>`:'';
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Прогноз залишку у Витратах на 30 днів"><defs><clipPath id="cp"><rect x="0" y="-10" width="${W}" height="${y0+10}"/></clipPath><clipPath id="cn"><rect x="0" y="${y0}" width="${W}" height="${H}"/></clipPath></defs>
+   ${grid}<line x1="${pl}" x2="${W-pr}" y1="${y0}" y2="${y0}" stroke="var(--faint)"/>
+   <path d="${d}" fill="none" stroke="var(--ink)" stroke-width="1.8" clip-path="url(#cp)" pathLength="1" class="draw"/>
+   <path d="${d}" fill="none" stroke="var(--crit)" stroke-width="1.8" clip-path="url(#cn)" pathLength="1" class="draw"/>${gm}${xt}</svg>`;
 }
 function radarAfter(){const r=$('run');if(r)r.onclick=runRadar;odBoxAfter();bindBills()}
 /* ---------- овердрафт: автопогашення або вручну ---------- */
@@ -563,31 +594,32 @@ function repayPlan(){let need=S.debt||0;const ua=S.unalloc||0,u=Math.min(need,ua
   const g=Math.round((ua-taxOf(ua)-u)/(1-taxPct()/100));   // залишок нерозподіленого «до податку», щоб при поділі податок не порахувався двічі
   return{u,r,total:u+r,left:need,g,taxNow:ua-u-g}}
 function odBoxHTML(){if(!(S.debt>0))return '';
-  return `<div class="card" id="c-odbox"><div class="ct">Овердрафт Raiffeisen<span class="chip crit">борг ${fmt(S.debt)}</span></div>
-    <div class="small">${S.autoRepay?`Спершу з кожного надходження відкладається податок, потім ${OD_SHARE*100}% йде на погашення, решта ділиться по конвертах. Приблизно ${odDays(S.debt)} дн. до повного погашення.`:'Автопогашення вимкнене: надходження повністю діляться по конвертах. Відсотки (умовно '+OD_RATE*100+'% річних) нараховуються, поки борг не закрито.'}</div>
-    <label class="tgl"><input type="checkbox" id="od-auto"${S.autoRepay?' checked':''}><span class="sw"></span>Гасити автоматично з надходжень</label>
+  return `<div class="card" id="c-odbox"><div class="ct">Овердрафт<span class="chip crit">борг ${fmt(S.debt)}</span></div>
+    <div class="small">${S.autoRepay?`${OD_SHARE*100}% кожного надходження йде на погашення. Закриється приблизно за ${odDays(S.debt)} дн.`:`Автопогашення вимкнено. Ставка ${OD_RATE*100}% річних, поки борг не закрито.`}</div>
+    <label class="tgl"><span>Гасити з надходжень</span><input type="checkbox" id="od-auto"${S.autoRepay?' checked':''}><span class="sw"></span></label>
     <button class="btn ghost sm" id="od-pay">Погасити зараз</button></div>`}
 function odBoxAfter(){const a=$('od-auto');if(a)a.onchange=()=>{S.autoRepay=a.checked;save();render(false);toast(S.autoRepay?'Автопогашення увімкнено':'Автопогашення вимкнено')};
   const b=$('od-pay');if(b)b.onclick=openRepay}
 function openRepay(){const p=repayPlan();
-  const rows=[p.u?`<span>З нерозподілених грошей</span><span>${fmt(p.u)}</span>`:'',p.taxNow?`<span>Податок із них, у «Податки»</span><span>${fmt(p.taxNow)}</span>`:'',p.r?`<span>З конверта «Резерв»</span><span>${fmt(p.r)}</span>`:''].join('');
-  openSheet(`<div class="lbl">Овердрафт Raiffeisen</div><h3>${p.total?`Погасити ${fmt(p.total)} зараз`:'Зараз нема з чого погасити'}</h3>
-    <div class="small">Борг ${fmt(S.debt)}. Гроші списуються з рахунку ФОП: спершу ще не розподілені (податок із них одразу йде в «Податки»), потім конверт «Резерв». Конверт «Операційні» не чіпаємо, щоб не відкрити новий розрив.</div>
-    ${rows?`<div class="kv">${rows}<span>Залишок боргу</span><span>${fmt(p.left)}</span></div>`:''}
-    ${p.total?`<button class="btn accent" id="rp-go">Погасити ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="rp-cl">${p.total?'Скасувати':'Зрозуміло'}</button>`,'Погашення овердрафту');
-  $('rp-cl').onclick=closeSheet;const g=$('rp-go');if(g)g.onclick=()=>{S.unalloc=p.g;S.bal.tax+=p.taxNow;S.bal.res-=p.r;S.debt-=p.total;save();closeSheet();render(false);toast(S.debt>0?`Погашено ${fmt(p.total)}, залишок ${fmt(S.debt)}`:'Овердрафт погашено повністю')}}
-const odAmount=g=>{let X=Math.ceil(g.need/100)*100;for(let i=0;i<200;i++){const f=forecast({ops:X,debt:X});if(f.days[g.i].low>=0)return X;X+=100}return X};
+  const rows=[p.u?`<span>З нерозподілених</span><span>${fmt(p.u)}</span>`:'',p.taxNow?`<span>Податок із них</span><span>${fmt(p.taxNow)}</span>`:'',p.r?`<span>З Резерву</span><span>${fmt(p.r)}</span>`:''].join('');
+  openSheet(`<div class="lbl">Овердрафт · борг ${fmt(S.debt)}</div><h3>${p.total?`Погасити ${fmt(p.total)}`:'Поки нема з чого погасити'}</h3>
+    ${rows?`<div class="kv">${rows}<span>Лишиться боргу</span><span>${fmt(p.left)}</span></div>`:'<div class="small">Резерв порожній і нерозподілених грошей немає. Витрати не чіпаємо, щоб не відкрити розрив.</div>'}
+    <div class="btncol">${p.total?`<button class="btn" id="rp-go">Погасити ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="rp-cl">${p.total?'Скасувати':'Зрозуміло'}</button></div>`,'Погашення овердрафту');
+  $('rp-cl').onclick=closeSheet;const g=$('rp-go');if(g)g.onclick=()=>{S.unalloc=p.g;S.bal.tax+=p.taxNow;S.bal.res-=p.r;S.debt-=p.total;save();closeSheet();render(false);toast(S.debt>0?`Погашено ${fmt(p.total)}`:'Овердрафт закрито')}}
+const odAmount=g=>{let X=Math.ceil(g.need/100)*100;for(let i=0;i<200;i++){const f=forecast({add:X,debt:X});if(f.days[g.i].low>=0)return X;X+=100}return X};
 const odDays=a=>Math.max(1,Math.ceil(a/(SALES_DAY*OD_SHARE)));
 
-/* ---------- OPS: усі операції ---------- */
+/* ---------- ОПЕРАЦІЇ ---------- */
+const INTEGR=[['WayForPay','еквайринг','підключено'],['NovaPay','еквайринг','підключено'],['LiqPay','еквайринг','підключено'],['Нова пошта','післяплата','підключено'],['Checkbox','каса','підключено'],['Raiffeisen','рахунок ФОП','підключено']];
 function opsHTML(){
-  return `<div class="card"><div class="ct">Усі надходження<span class="sub">еквайринг, пошта, каси</span></div>
-    <div class="list">${S.tx.map((x,j)=>`<div class="li${x.fresh&&j===0?' new':''}">${srcIc(x.src)}<div><div class="t">${x.t}</div><div class="s">${x.src} · ${x.ago}</div></div><span class="amt in">+${fmt(x.a)}</span></div>`).join('')}</div></div>
-  <div class="card blue"><div class="ct">Підключені джерела</div><div class="small" style="position:relative">Еквайринг: NovaPay, LiqPay, WayForPay. Логістика: Нова пошта (післяплата). Офлайн-каси: Checkbox, Вчасно.Каса. У цьому прототипі працює тестовий WayForPay, решта показана на демонстраційних даних.</div></div>`;
+  const groups={};S.tx.forEach((x,j)=>{const k=x.day===1||/^вчора/.test(x.ago)?'Вчора':'Сьогодні';(groups[k]=groups[k]||[]).push([x,j])});
+  return `<section class="blk"><div class="bh">Усі надходження<span class="sub">${S.tx.length}</span></div>
+    <div class="list">${Object.entries(groups).map(([k,a])=>`<div class="dayh">${k}</div>${a.map(([x,j])=>txRow(x,j)).join('')}`).join('')}</div></section>
+  <section class="blk"><div class="bh">Підключені сервіси</div><div class="list">${INTEGR.map(([n,t,s])=>`<div class="li">${srcIc(n)}<div><div class="t">${srcName(n)}</div><div class="s">${t}</div></div><span class="chip">${s}</span></div>`).join('')}</div></section>`;
 }
 
 /* ======================================================================
-   SHEETS
+   ШТОРКИ
    ====================================================================== */
 let closeT=0,sheetT=[];
 const clearT=()=>{sheetT.forEach(clearTimeout);sheetT=[]};
@@ -595,63 +627,68 @@ function openSheet(html,label){clearT();clearTimeout(closeT);const L=$('layer');
   if(sh&&!sh.classList.contains('closing')){const p=sh.querySelector('.panel');p.innerHTML='<div class="grab"></div>'+html;p.classList.remove('swap');void p.offsetWidth;p.classList.add('swap');return p}
   if(sh)sh.remove();sh=document.createElement('div');sh.className='sheet';sh.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="${label}"><div class="grab"></div>${html}</div>`;
   sh.addEventListener('click',e=>{if(e.target===sh)closeSheet()});L.appendChild(sh);return sh.querySelector('.panel')}
-function closeSheet(){clearT();const sh=$('layer').querySelector('.sheet');if(!sh)return;sh.classList.add('closing');closeT=setTimeout(()=>sh.remove(),220)}
+function closeSheet(){clearT();const sh=$('layer').querySelector('.sheet');if(!sh)return;sh.classList.add('closing');closeT=setTimeout(()=>{sh.remove();onSheetClosed()},200)}
+const sheetOpen=()=>{const s=$('layer').querySelector('.sheet');return !!(s&&!s.classList.contains('closing'))};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 
 /* ---------- відсотки ---------- */
 function openPct(){
   const draft={group:S.group,pct:{...S.pct}};
   const tp=()=>draft.group==='3'?6:draft.group==='3v'?4:0, sp=()=>100-tp()-draft.pct.buy-draft.pct.ops-draft.pct.mkt-draft.pct.res;
-  const P=openSheet(`<div class="lbl">Налаштування конвертів</div><h3>Скільки куди йде з кожного надходження</h3>
+  const slider=(k,n,h)=>`<label class="prow" for="p-${k}"><span>${n}</span><span class="v" id="pv-${k}">${draft.pct[k]}%</span>${h?`<span class="hint2">${h}</span>`:''}<input type="range" id="p-${k}" data-k="${k}" min="0" max="80" value="${draft.pct[k]}"></label>`;
+  const P=openSheet(`<h3>Розподіл надходжень</h3>
     <div class="gchips" role="group" aria-label="Група ФОП">${[['12','1–2 група'],['3','3 група'],['3v','3 група з ПДВ']].map(([v,n])=>`<button class="gchip" data-g="${v}" aria-pressed="${draft.group===v}">${n}</button>`).join('')}</div>
     <div class="taxline" id="taxline"></div>
-    ${[['buy','Закупівля товару (собівартість)'],['ops','Операційні: оренда, зарплата'],['mkt','Маркетинг'],['res','Резерв']].map(([k,n])=>`<label class="prow" for="p-${k}"><span>${n}</span><span class="v" id="pv-${k}">${draft.pct[k]}%</span><input type="range" id="p-${k}" data-k="${k}" min="0" max="80" value="${draft.pct[k]}"></label>`).join('')}
+    ${slider('buy','Закупівля','скільки з продажу йде на товар')}
+    <div class="pgroup"><div class="gh"><span>Витрати</span><span id="pv-exp">${draft.pct.ops+draft.pct.mkt}%</span></div>${slider('ops','Операційні','оренда, зарплата, тарифи')}${slider('mkt','Маркетинг','реклама')}</div>
+    ${slider('res','Резерв')}
     <div class="selfline" id="selfline"></div>
-    <button class="btn accent" id="pct-save">Зберегти розподіл</button>
-    <p class="note">Не знаєте собівартості? Подумайте, за скільки продаєте пару, куплену за 1000 ₴. Якщо за 2000, закупівля займає 50%.</p>`,'Налаштування конвертів');
-  const upd=()=>{const t=tp(),s=sp();$('taxline').textContent=draft.group==='12'?'1–2 група: фіксований єдиний податок (до 1 729,40 ₴) і військовий збір 864,70 ₴ щомісяця, відкладемо окремою ціллю.':`Податок ${t}% (${draft.group==='3'?'5% єдиний + 1% військовий збір':'3% єдиний + 1% військовий збір, ПДВ окремо'}) підтягнувся автоматично.`;
-    $('selfline').className='selfline'+(s<0?' bad':'');$('selfline').innerHTML=s<0?`<span>Частки разом більші за 100%</span><span>${s}%</span>`:`<span>Собі (решта)</span><span>${s}%</span>`;$('pct-save').disabled=s<0;
-    ['buy','ops','mkt','res'].forEach(k=>$('pv-'+k).textContent=draft.pct[k]+'%')};
+    <button class="btn" id="pct-save">Зберегти</button>`,'Розподіл надходжень');
+  const upd=()=>{const t=tp(),s=sp();$('taxline').textContent=draft.group==='12'?'1–2 група: податок фіксований щомісяця, з надходжень не відкладається':`Податок ${t}% (${draft.group==='3'?'5% + 1% військовий збір':'3% + 1% військовий збір'}) відкладається першим`;
+    $('selfline').className='selfline'+(s<0?' bad':'');$('selfline').innerHTML=s<0?`<span>Разом більше 100%</span><span>${s}%</span>`:`<span>Собі</span><span>${s}%</span>`;$('pct-save').disabled=s<0;
+    ['buy','ops','mkt','res'].forEach(k=>$('pv-'+k).textContent=draft.pct[k]+'%');$('pv-exp').textContent=(draft.pct.ops+draft.pct.mkt)+'%'};
   P.querySelectorAll('.gchip').forEach(b=>b.onclick=()=>{draft.group=b.dataset.g;P.querySelectorAll('.gchip').forEach(x=>x.setAttribute('aria-pressed',x===b));upd()});
   P.querySelectorAll('input[type=range]').forEach(r=>r.oninput=()=>{draft.pct[r.dataset.k]=+r.value;upd()});
-  $('pct-save').onclick=()=>{S.group=draft.group;S.pct=draft.pct;S.done.pct=true;closeSheet();if(tab!=='env')setTab('env');else render(false);toast('Розподіл збережено');flash('c-split')};
+  $('pct-save').onclick=()=>{S.group=draft.group;S.pct=draft.pct;S.done.pct=true;closeSheet();if(tab!=='env')setTab('env');else render(false);toast('Збережено');flash('c-split')};
   upd();
 }
 
-/* ---------- вхідний платіж ---------- */
+/* ---------- прийняти оплату ---------- */
 const PRODUCTS=[['Туфлі «Мія», 38',2400],['Кросівки «Ран», 41',3100],['Лофери «Ліра», 37',2800],['Черевики «Зима», 39',3600]];
 function openPay(){
   const pr=PRODUCTS[(S.tx.filter(x=>x.fresh).length)%PRODUCTS.length];
-  const P=openSheet(`<div class="lbl">Вхідний платіж від клієнта</div><h3>${pr[0]}</h3>
-    <label class="field" for="pay-amt">Сума, ₴<input id="pay-amt" type="number" inputmode="numeric" min="1" step="1" value="${pr[1]}"></label>
-    <button class="btn accent" id="pay-wfp">${ic('card')}Оплатити тестовою карткою · WayForPay</button>
-    <button class="btn ghost" id="pay-sim">Імітувати оплату без картки</button>
-    <div class="hint">Тестова картка: <b>4111 1111 1111 1111</b>, термін будь-який у майбутньому, CVV будь-який. Справжні гроші не списуються.</div>
-    <p class="note" id="pay-status"></p>`,'Вхідний платіж');
-  const amt=()=>Math.max(1,Math.round(+$('pay-amt').value||0));
+  const P=openSheet(`<div class="lbl">Рахунок для клієнта</div><h3>${pr[0]}</h3>
+    <label class="field" for="pay-amt">Сума, ₴<input id="pay-amt" type="text" inputmode="numeric" autocomplete="off" value="${fmtn(pr[1])}"></label>
+    <div class="btncol"><button class="btn" id="pay-sim">Клієнт оплатив</button>
+    <button class="btn ghost" id="pay-wfp">${ic('card')}<span id="pay-wfp-t">Оплатити карткою · ${fmt(pr[1])}</span></button></div>
+    <p class="note" id="pay-status">Оплата карткою йде через тестовий WayForPay.</p>`,'Прийняти оплату');
+  const inp=$('pay-amt');
+  const amt=()=>Math.max(1,parseAmt(inp.value));
+  inp.oninput=()=>{const n=parseAmt(inp.value);inp.value=n?fmtn(n):'';$('pay-wfp-t').textContent='Оплатити карткою · '+fmt(Math.max(1,n))};   // показуємо суму з пробілами, рахуємо тільки цифри
   $('pay-sim').onclick=()=>{closeSheet();handlePayment(amt(),'Імітація',pr[0])};
   $('pay-wfp').onclick=()=>payWFP(amt(),pr[0]);
 }
 function handlePayment(a,src,title){
-  S.unalloc=(S.unalloc||0)+a;S.tx.unshift({src,t:title,a,ago:'щойно',fresh:true});S.todaySales=(S.todaySales||14760)+a;S.done.pay=true;save();paintSteps();
+  S.unalloc=(S.unalloc||0)+a;S.tx.unshift({src,t:title,a,ago:'сьогодні '+new Date().toTimeString().slice(0,5),day:0,fresh:true});S.todaySales=(S.todaySales||14760)+a;S.done.pay=true;
+  addNote('pay',`+${fmt(a)} на рахунку`,`${title}. Розподіліть по конвертах`);save();paintSteps();
   if(tab!=='env')setTab('env');else render(false);
   setTimeout(()=>{flash('c-pending');toast('+'+fmt(a)+' на рахунку')},450);
 }
 function splitNow(){
   const a=S.unalloc||0;if(!(a>0))return;const tx=taxOf(a),rp=repayOf(a),rest=a-tx-rp;   // спершу податок від повної суми, потім погашення, решта за відсотками
   const shares={tax:tx};let used=tx;ENVS.forEach(e=>{if(e.k==='self'||e.k==='tax')return;shares[e.k]=Math.round(rest*pctOf(e.k)/(100-taxPct()));used+=shares[e.k]});shares.self=a-rp-used;
-  S.unalloc=0;S.debt=(S.debt||0)-rp;if(rp>0)S.done.repay=true;save();flyIn(a,rp,shares);
+  S.unalloc=0;S.debt=(S.debt||0)-rp;if(rp>0)S.done.repay=true;reminded.split=false;save();flyIn(a,rp,shares);
 }
 function flyIn(a,rp,shares){
   const box=$('paybox');if(!box)return;
-  box.innerHTML=`<div class="paybanner" id="pb"><span class="coin">₴</span><div><div class="t">Розподіляємо по конвертах${rp?` · −${fmt(rp)} погашення овердрафту, борг ${fmt(S.debt)}`:''}</div><b class="num">${fmt(a-rp)}</b></div></div>`;
+  box.innerHTML=`<div class="paybanner" id="pb"><span class="coin">₴</span><div><div class="t">Розподіляємо${rp?` · ${fmt(rp)} на погашення`:''}</div><b class="num">${fmt(a-rp)}</b></div></div>`;
   const app=$('app'),ar=app.getBoundingClientRect(),from=$('pb').querySelector('.coin').getBoundingClientRect();
   const keys=ENVS.filter(e=>shares[e.k]&&$('env-'+e.k)).map(e=>e.k);let left=keys.length;
-  const done=()=>{S.done.env=true;save();paintSteps();toast('Гроші розкладено по конвертах')};if(!left){ENVS.forEach(e=>S.bal[e.k]+=shares[e.k]||0);done();return}
+  const done=()=>{S.done.env=true;save();paintSteps();toast('Розподілено');setTimeout(()=>{const pb=$('pb');if(pb){pb.style.transition='opacity .3s';pb.style.opacity=0;setTimeout(()=>{const bx=$('paybox');if(bx&&!S.unalloc)bx.innerHTML=''},300)}},900);if(tab==='env'){const sp=expSplit(S.bal.exp);const o=$('sub-ops'),m=$('sub-mkt');if(o)o.textContent=fmt(sp.ops);if(m)m.textContent=fmt(sp.mkt)}};if(!left){ENVS.forEach(e=>S.bal[e.k]+=shares[e.k]||0);done();return}
   ENVS.forEach((e,j)=>{const sh=shares[e.k];if(!sh)return;const card=$('env-'+e.k);if(!card)return;
     const to=card.getBoundingClientRect();const chip=document.createElement('div');chip.className='flychip';chip.style.background=e.c;chip.textContent='+'+fmtn(sh);$('layer').appendChild(chip);
-    const x0=from.left-ar.left,y0=from.top-ar.top,x1=to.left-ar.left+to.width/2-30,y1=to.top-ar.top+to.height/2-12;
-    const anim=chip.animate([{transform:`translate(${x0}px,${y0}px) scale(.5)`,opacity:0},{transform:`translate(${x0+10}px,${y0}px) scale(1)`,opacity:1,offset:.18},{transform:`translate(${x1}px,${y1}px) scale(.95)`,opacity:1,offset:.85},{transform:`translate(${x1}px,${y1}px) scale(.6)`,opacity:0}],{duration:RM?1:1000,delay:RM?0:300+j*140,easing:'cubic-bezier(.5,0,.2,1)',fill:'both'});
+    const x0=from.left-ar.left,y0=from.top-ar.top,x1=to.left-ar.left+to.width-90,y1=to.top-ar.top+14;
+    const anim=chip.animate([{transform:`translate(${x0}px,${y0}px) scale(.5)`,opacity:0},{transform:`translate(${x0+10}px,${y0}px) scale(1)`,opacity:1,offset:.18},{transform:`translate(${x1}px,${y1}px) scale(.95)`,opacity:1,offset:.85},{transform:`translate(${x1}px,${y1}px) scale(.6)`,opacity:0}],{duration:RM?1:950,delay:RM?0:250+j*130,easing:'cubic-bezier(.5,0,.2,1)',fill:'both'});
     anim.onfinish=()=>{chip.remove();S.bal[e.k]+=sh;countUp($('bal-'+e.k),S.bal[e.k],'bal-'+e.k);const b=$('bar-'+e.k);if(b)b.style.width=Math.min(100,S.bal[e.k]/e.goal*100)+'%';
       const p=$('plus-'+e.k);if(p)p.textContent='+'+fmtn(sh);card.classList.remove('bump');void card.offsetWidth;card.classList.add('bump');setTimeout(()=>card.classList.remove('bump'),700);
       if(--left===0)done()};
@@ -663,8 +700,8 @@ function flyIn(a,rp,shares){
 const WFP={account:'test_merch_n1',secret:'flk3409refn54t54t*FNJRET'};
 function loadWFP(){return new Promise((res,rej)=>{if(window.Wayforpay)return res();const s=document.createElement('script');s.src='https://secure.wayforpay.com/server/pay-widget.js';s.onload=()=>res();s.onerror=()=>rej(new Error('script'));document.head.appendChild(s)})}
 async function payWFP(a,title){
-  const st=$('pay-status');st.textContent='Відкриваємо віджет WayForPay…';
-  try{await loadWFP()}catch(e){st.textContent='Не вдалося завантажити WayForPay. Перевірте інтернет або натисніть «Імітувати оплату».';return}
+  const st=$('pay-status');st.textContent='Відкриваємо WayForPay…';
+  try{await loadWFP()}catch(e){st.textContent='WayForPay не завантажився. Перевірте інтернет.';return}
   const ref='FK-'+Date.now(),date=Math.floor(Date.now()/1000),domain=location.hostname||'localhost';
   const sig=hmacMD5(WFP.secret,[WFP.account,domain,ref,date,a,'UAH',title,1,a].join(';'));
   let handled=false;const ok=()=>{if(handled)return;handled=true;closeSheet();handlePayment(a,'WayForPay',title)};
@@ -673,10 +710,10 @@ async function payWFP(a,title){
     const w=new window.Wayforpay();
     w.run({merchantAccount:WFP.account,merchantDomainName:domain,authorizationType:'SimpleSignature',merchantSignature:sig,orderReference:ref,orderDate:date,amount:a,currency:'UAH',
       productName:[title],productPrice:[a],productCount:[1],clientFirstName:'Олена',clientLastName:'Коваль',clientPhone:'380000000000',language:'UA'},
-      function(){ok()},function(r){st.textContent='Тестовий WayForPay відхилив оплату'+(r&&r.reason?' ('+r.reason+')':'')+'. Перевірте, що введена саме тестова картка 4111 1111 1111 1111, або натисніть «Імітувати оплату без картки».'},function(){st.textContent='Платіж обробляється…'});
-  }catch(e){st.textContent='Віджет не відкрився: '+e.message}
+      function(){ok()},function(r){st.textContent='Оплату відхилено'+(r&&r.reason?': '+r.reason:'')+'. Тестовий режим приймає тільки картку 4111 1111 1111 1111.'},function(){st.textContent='Платіж обробляється…'});
+  }catch(e){st.textContent='WayForPay не відкрився: '+e.message}
 }
-window.addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk();if(e.data==='WfpWidgetEventClose'){const st=$('pay-status');if(st)st.textContent='Оплату скасовано. Можна спробувати ще раз або імітувати оплату.'}});
+window.addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk();if(e.data==='WfpWidgetEventClose'){const st=$('pay-status');if(st)st.textContent='Оплату скасовано.'}});
 
 /* HMAC-MD5 (UTF-8). MD5 — RFC 1321 */
 function md5bytes(bytes){
@@ -696,119 +733,161 @@ function hmacMD5(key,msg){const enc=new TextEncoder();let k=enc.encode(key);if(k
   const inner=md5bytes(new Uint8Array([...ip,...m]));const outer=md5bytes(new Uint8Array([...op,...inner]));return [...outer].map(b=>b.toString(16).padStart(2,'0')).join('')}
 window.__hmacMD5=hmacMD5;
 
-/* ---------- радар → пуш → овердрафт ---------- */
-
 /* ---------- розрив без овердрафту: перекинути з конвертів або перенести платіж ---------- */
-function transferPlan(){let X=0;for(let i=0;i<1000&&forecast({ops:X}).gap;i++)X+=100;   // скільки треба докласти в «Операційні», щоб за 30 днів не було розриву
+function transferPlan(){let X=0;for(let i=0;i<1000&&forecast({add:X}).gap;i++)X+=100;   // скільки треба докласти у «Витрати», щоб за 30 днів не було розриву
   const r=Math.min(X,S.bal.res),s=Math.min(X-r,S.bal.self);return{need:X,r,s,total:r+s,full:r+s>=X}}
 function movePlan(g){const j=g.pay.j;for(let d=g.i+1;d<Math.min(30,g.i+15);d++){   // реалістично домовитись про перенесення максимум на 2 тижні
     const f=forecast({move:{[j]:d}});if(!f.gap||f.gap.i>d)return{j,d}}return null}
-function gapResolved(msg){S.alert=false;S.done.gap=true;save();$('badge').hidden=true;closeSheet();render(false);toast(msg)}
-function openTransfer(){const p=transferPlan();
-  const rows=[p.r?`<span>З конверта «Резерв»</span><span>${fmt(p.r)}</span>`:'',p.s?`<span>З конверта «Собі»</span><span>${fmt(p.s)}</span>`:''].join('');
-  openSheet(`<div class="lbl">Без овердрафту</div><h3>${p.total?`Перекинути ${fmt(p.total)} в «Операційні»`:'У «Резерві» і «Собі» зараз порожньо'}</h3>
-    <div class="small">${p.full?`Цього вистачить, щоб за 30 днів не було жодного розриву. Гроші лишаються на тому ж рахунку ФОП, змінюється тільки поділ між конвертами.`:p.total?`Цього не вистачить: потрібно ${fmt(p.need)}. Решту можна перекрити овердрафтом.`:`Потрібно ${fmt(p.need)}. Перекрийте розрив овердрафтом або перенесіть платіж.`}</div>
+function gapResolved(msg,after){S.alert=false;S.done.gap=true;save();closeSheet();render(false);toast(msg);if(after)setTimeout(after,450)}
+function openTransfer(){const p=transferPlan(),g=forecast().gap;
+  const rows=[p.r?`<span>З Резерву</span><span>${fmt(p.r)}</span>`:'',p.s?`<span>З «Собі»</span><span>${fmt(p.s)}</span>`:''].join('');
+  openSheet(`<div class="lbl">Без овердрафту</div><h3>${p.total?`Перекинути ${fmt(p.total)} у Витрати`:'Резерв і «Собі» порожні'}</h3>
     ${rows?`<div class="kv">${rows}</div>`:''}
-    <div class="btncol">${p.total?`<button class="btn accent" id="tr-go">Перекинути ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="tr-cl">${p.total?'Скасувати':'Зрозуміло'}</button></div>`,'Перекинути між конвертами');
-  $('tr-cl').onclick=closeSheet;const go_=$('tr-go');if(go_)go_.onclick=()=>{S.bal.res-=p.r;S.bal.self-=p.s;S.bal.ops+=p.total;
-    if(p.full)gapResolved('Розрив закрито без овердрафту');else{save();closeSheet();render(false);toast('Перекинуто '+fmt(p.total)+', решту можна взяти овердрафтом')}}}
+    <div class="small">${p.full?'Вистачить на всі платежі 30 днів.':p.total?`Цього мало: треба ${fmt(p.need)}. Решту можна взяти овердрафтом.`:`Треба ${fmt(p.need)}. Візьміть овердрафт або перенесіть платіж.`}</div>
+    <div class="btncol">${p.total?`<button class="btn" id="tr-go">Перекинути ${fmt(p.total)}</button>`:''}<button class="btn ghost" id="tr-cl">${p.total?'Скасувати':'Зрозуміло'}</button></div>`,'Перекинути між конвертами');
+  $('tr-cl').onclick=closeSheet;const go_=$('tr-go');if(go_)go_.onclick=()=>{S.bal.res-=p.r;S.bal.self-=p.s;S.bal.exp+=p.total;
+    if(p.full)gapResolved('Розрив закрито',()=>offerPay(g&&g.pay));else{save();closeSheet();render(false);toast('Перекинуто '+fmt(p.total))}}}
+function offerPay(pay){if(!pay)return;   // після перекидання одразу пропонуємо оплатити платіж, через який був розрив
+  openSheet(`<svg class="success" viewBox="0 0 64 64" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="28" pathLength="1"/><path d="M20 33l8 8 16-17" pathLength="1"/></svg>
+    <h3 style="text-align:center">Гроші у Витратах</h3><div class="small" style="text-align:center">${pay.t}, ${fmt(pay.a)}. Оплатити зараз?</div>
+    <div class="btncol"><button class="btn" id="op-go">${ic('card')}Оплатити ${pay.t.toLowerCase()}</button><button class="btn ghost" id="op-cl">Пізніше</button></div>`,'Оплатити');
+  $('op-cl').onclick=closeSheet;$('op-go').onclick=()=>openBill(pay.id)}
 function openMove(){const f=forecast();if(!f.gap)return;const g=f.gap,m=movePlan(g);
-  openSheet(`<div class="lbl">Без овердрафту</div><h3>${m?`Перенести платіж «${g.pay.t}» на ${wd(m.d)} ${dm(m.d)}`:'Перенесення не допоможе'}</h3>
-    <div class="small">${m?`Зараз платіж ${fmt(g.pay.a)} ${wd(g.i)} ${dm(g.i)}. ${dm(m.d)} у конверті вже вистачить грошей. Дату треба погодити з отримувачем платежу, Фінансист оновить календар платежів і прогноз.`:`Навіть якщо перенести платіж на 2 тижні, грошей у конверті не вистачить: бракує ${fmt(g.need)}. Перекрийте розрив овердрафтом або грошима з інших конвертів.`}</div>
-    <div class="btncol">${m?`<button class="btn accent" id="mv-go">Перенести на ${dm(m.d)}</button>`:''}<button class="btn ghost" id="mv-cl">${m?'Скасувати':'Зрозуміло'}</button></div>`,'Перенести платіж');
+  openSheet(`<div class="lbl">Без овердрафту</div><h3>${m?`Перенести на ${wd(m.d)} ${dm(m.d)}`:'Перенесення не допоможе'}</h3>
+    <div class="small">${m?`${g.pay.t}, ${fmt(g.pay.a)}. Зараз ${wd(g.i)} ${dm(g.i)}. На нову дату грошей вистачить. Дату погодьте з отримувачем.`:`Навіть через 2 тижні не вистачить ${fmt(g.need)}. Краще овердрафт або гроші з Резерву.`}</div>
+    <div class="btncol">${m?`<button class="btn" id="mv-go">Перенести на ${dm(m.d)}</button>`:''}<button class="btn ghost" id="mv-cl">${m?'Скасувати':'Зрозуміло'}</button></div>`,'Перенести платіж');
   $('mv-cl').onclick=closeSheet;const go_=$('mv-go');if(go_)go_.onclick=()=>{S.moved=S.moved||{};S.moved[m.j]=m.d;
-    if(forecast().gap){save();closeSheet();render(false);toast('Платіж перенесено, але радар бачить ще один розрив')}else gapResolved(`«${g.pay.t}» перенесено на ${dm(m.d)}`)}}
+    if(forecast().gap){save();closeSheet();render(false);toast('Перенесено, але є ще розрив')}else gapResolved(`${g.pay.t}: ${dm(m.d)}`)}}
 function runRadar(){
   const box=$('radarbox');if(!box)return;
-  box.innerHTML=`<div class="card"><div class="ct">Платіжний радар<span class="sub">аналіз…</span></div><div class="scan"><i></i><i></i><i></i><b></b></div><div class="small" style="text-align:center">Перевіряємо платежі й очікувані надходження на 30 днів</div></div>`;
-  setTimeout(()=>{const f=forecast();if(!f.gap){render(false);return}S.alert=true;S.done.alert=true;save();$('badge').hidden=false;showPush(f.gap);
-    box.innerHTML=alertHTML(f.gap);$('cover').onclick=()=>openOD(odAmount(f.gap),f.gap);$('alt-tr').onclick=openTransfer;$('alt-mv').onclick=openMove;flash('c-alert')},RM?10:1900);
+  box.innerHTML=`<div class="card"><div class="scan"><span class="spin"></span><span><b style="display:block;font-weight:600">Перевіряємо платежі</b><span class="small">оренда, реклама, зарплата, тарифи</span></span></div></div>`;
+  setTimeout(()=>{const f=forecast();if(!f.gap){render(false);return}S.alert=true;S.done.alert=true;save();$('badge').hidden=false;
+    notify('gap',`${f.gap.pay.t}: бракує ${fmt(f.gap.need)}`,`${wd(f.gap.i)} ${dm(f.gap.i)} не вистачить грошей у Витратах. Відкрийте, щоб закрити розрив`,()=>{if(tab!=='radar'){setTab('radar');setTimeout(runRadar,300)}else{const c=$('cover');if(c)c.click()}},true);
+    box.innerHTML=alertHTML(f.gap);$('cover').onclick=()=>openOD(odAmount(f.gap),f.gap);$('alt-tr').onclick=openTransfer;$('alt-mv').onclick=openMove;flash('c-alert')},RM?10:1600);
 }
-function alertHTML(g){return `<div class="card pink" id="c-alert">${rings('var(--crit)')}<div class="ct">Касовий розрив<span class="chip crit"><span class="dot"></span>${inDays(g.i)}, ${wd(g.i)} ${dm(g.i)}</span></div>
+function alertHTML(g){return `<div class="card alert-card" id="c-alert"><div class="alert-top"><span class="ct" style="font-size:15px">Касовий розрив</span><span class="chip crit">${inDays(g.i)}, ${dm(g.i)}</span></div>
   <div class="big num">−${fmtn(g.need)}<small>₴</small></div>
-  <div class="small" style="position:relative">${g.pay.t}: ${fmt(g.pay.a)}, у конверті «Операційні» буде ${fmt(g.pay.a-g.first)}.${g.need>g.first+1?` З урахуванням наступних платежів за місяць бракує ${fmt(g.need)}.`:''}</div>
+  <div class="small">${g.pay.t} ${fmt(g.pay.a)}. У Витратах на цю дату буде ${fmt(g.pay.a-g.first)}</div>
   <button class="btn crit" id="cover">Перекрити розрив (взяти овердрафт)</button>
-  <div class="small" style="position:relative">Або без овердрафту:</div><div class="altrow"><button class="btn ghost sm" id="alt-tr">Перекинути з «Резерву» і «Собі»</button><button class="btn ghost sm" id="alt-mv">Перенести платіж</button></div></div>`}
-function showPush(g){
+  <div class="altrow"><button class="btn ghost sm" id="alt-tr">З Резерву</button><button class="btn ghost sm" id="alt-mv">Перенести платіж</button></div></div>`}
+
+/* ======================================================================
+   СПОВІЩЕННЯ: банер усередині застосунку, системне сповіщення браузера
+   (коли дозволено і вкладка не на екрані), центр сповіщень під дзвіночком
+   ====================================================================== */
+const ICON='icons/icon-192.png';
+function addNote(kind,title,body){S.notes.unshift({kind,title,body,at:Date.now(),read:false});S.notes=S.notes.slice(0,20)}
+function banner(title,body,go){
   const L=$('layer');const old=L.querySelector('.push');if(old)old.remove();
-  const p=document.createElement('button');p.className='push';p.innerHTML=`<span class="pi">${ic('tg',0)}</span><span><span class="h"><span>Фінансист · Telegram</span><span>зараз</span></span><span class="b">${g.pay.t} ${inDays(g.i)}: бракує ${fmt(g.need)}. Перекрити розрив?</span></span>`;
-  p.onclick=()=>{hidePush();if(tab!=='radar'){setTab('radar');setTimeout(runRadar,300)}else{const c=$('cover');if(c)c.click()}};
+  const p=document.createElement('button');p.className='push';p.innerHTML=`<span class="pi"><img src="${ICON}" alt=""></span><span><span class="h"><span>ФІНАНСИСТ</span><span>зараз</span></span><span class="tt">${title}</span><span class="b">${body}</span></span>`;
+  p.onclick=()=>{hidePush();if(go)go()};
   L.appendChild(p);setTimeout(hidePush,6500);
 }
-function hidePush(){const p=$('layer').querySelector('.push');if(p){p.classList.add('out');setTimeout(()=>p.remove(),300)}}
-$('bell').onclick=()=>{const f=forecast();if(f.gap)showPush(f.gap);else toast('Нових сповіщень немає')};
+function hidePush(){const p=$('layer').querySelector('.push');if(p){p.classList.add('out');setTimeout(()=>p.remove(),280)}}
+function sysNotify(title,body){   // справжнє сповіщення браузера; на iPhone працює тільки з головного екрана
+  try{if(!S.sysPush||!('Notification' in window)||Notification.permission!=='granted')return;
+    const o={body,icon:ICON,badge:ICON,tag:'fin-'+title};
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(()=>new Notification(title,o));else new Notification(title,o)}catch(e){}}
+function notify(kind,title,body,go,store){if(store!==false)addNote(kind,title,body);save();
+  if(document.hidden)sysNotify(title,body);else banner(title,body,go);$('badge').hidden=false}
+const NIC={gap:'warn',pay:'down',od:'bolt',bill:'bill',remind:'clock'};
+function ago(t){const m=Math.round((Date.now()-t)/60000);return m<1?'щойно':m<60?m+' хв тому':Math.round(m/60)+' год тому'}
+function openNotes(){S.notes.forEach(n=>n.read=true);save();$('badge').hidden=!S.alert;
+  const f=forecast();
+  openSheet(`<h3>Сповіщення</h3>
+    ${f.gap&&S.alert?`<button class="ntf" id="n-gap"><span class="ni" style="background:var(--crit-soft);color:var(--crit)">${ic('warn')}</span><span><span class="t" style="display:block">Розрив ${dm(f.gap.i)}: бракує ${fmt(f.gap.need)}</span><span class="s" style="display:block">${f.gap.pay.t}. Натисніть, щоб закрити</span></span></button>`:''}
+    <div>${S.notes.length?S.notes.map(n=>`<div class="ntf"><span class="ni">${ic(NIC[n.kind]||'bell')}</span><span><span class="t" style="display:block">${n.title}</span><span class="s" style="display:block">${n.body}</span><span class="w">${ago(n.at)}</span></span></div>`).join(''):'<div class="small" style="padding:8px 0">Поки тихо</div>'}</div>`,'Сповіщення');
+  const g=$('n-gap');if(g)g.onclick=()=>{closeSheet();setTimeout(()=>{setTab('radar');setTimeout(runRadar,300)},220)}}
+$('bell').onclick=openNotes;
+
+/* нагадування про незавершену дію: якщо людина відволіклась (пішла з вкладки або нічого не робить 30 с) */
+const reminded={};let idleT=0,hiddenT=0,leftWith=null,odLeft=false;
+function pendingAction(){
+  if(S.unalloc>0)return{k:'split',title:'Гроші чекають розподілу',body:`${fmt(S.unalloc)} ще не розкладено по конвертах`,go:()=>{setTab('env');setTimeout(()=>flash('c-pending'),300)}};
+  if(odLeft&&forecast().gap)return{k:'od',title:'Овердрафт не оформлено',body:'Ви почали, але не підписали. Розрив досі відкритий',go:()=>{setTab('radar');setTimeout(runRadar,300)}};
+  if(S.alert&&forecast().gap)return{k:'gap',title:'Розрив не закрито',body:'Оберіть: овердрафт, Резерв або перенести платіж',go:()=>{setTab('radar');setTimeout(runRadar,300)}};
+  return null}
+function remindNow(){if(auto)return;const a=pendingAction();if(!a||reminded[a.k]||sheetOpen())return;reminded[a.k]=true;addNote('remind',a.title,a.body);save();banner(a.title,a.body,a.go);$('badge').hidden=false}
+function poke(){clearTimeout(idleT);idleT=setTimeout(remindNow,30000)}
+['pointerdown','keydown','scroll'].forEach(ev=>addEventListener(ev,poke,{passive:true,capture:true}));poke();
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){const a=pendingAction();leftWith=a;clearTimeout(hiddenT);if(a&&!auto)hiddenT=setTimeout(()=>{if(!reminded[a.k]){reminded[a.k]=true;addNote('remind',a.title,a.body);save();sysNotify(a.title,a.body)}},5000)}
+  else{clearTimeout(hiddenT);const a=pendingAction();if(a&&leftWith&&a.k===leftWith.k&&!reminded[a.k]&&!auto&&!sheetOpen()){banner(a.title,a.body,a.go);reminded[a.k]=true}leftWith=null;poke()}});
+function onSheetClosed(){if(od.step>=1&&od.step<4&&!od.finished)odLeft=true}
 
 /* ---------- календар платежів: оплата прямо з застосунку (імітація) ---------- */
 const PAYEE={o0:'Орендодавець складу',o1:'Помічниця, зарплата',o2:'Prom.ua',meta:'Meta, рекламний кабінет',buy:'Фабрика-постачальник',tax:'ДПС, єдиний податок і військовий збір'};
-const CAL=()=>[{id:'o0',j:0,e:'ops',t:'Оренда складу',a:40000},{id:'meta',i:10,e:'mkt',t:'Реклама Meta',a:18000},{id:'buy',i:13,e:'buy',t:'Партія у фабрики-постачальника',a:52000},{id:'o1',j:1,e:'ops',t:'Зарплата помічниці',a:15000},{id:'o2',j:2,e:'ops',t:'Тариф Prom.ua',a:4500},{id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Єдиний податок + військовий збір за III квартал, до 19.11',a:70200}].map(p=>({...p,i:p.j!=null?payDay(p.j):p.i})).sort((x,y)=>x.i-y.i);
+const CAL=()=>[...OPS_PAYS.map((p,j)=>({id:p.id,j,e:'exp',t:p.t,a:p.a})),{id:'buy',i:13,e:'buy',t:'Партія постачальнику',a:52000},{id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Податок за III квартал',a:70200}].map(p=>({...p,i:p.j!=null?payDay(p.j):p.i})).sort((x,y)=>x.i-y.i);
 const envName=k=>ENVS.find(e=>e.k===k).n;
 const billState=id=>S.paid&&S.paid[id];
-function calHTML(f){f=f||forecast();return `<div class="card" id="c-cal"><div class="ct">Календар платежів<span class="sub">30 днів</span></div><div class="list">${CAL().map(p=>{const st=billState(p.id),low=p.j!=null&&st!=='paid'?f.days[p.i].low:null;
-  return `<div class="li${st==='paid'?' paidli':''}"><span class="ic" style="background:${st==='paid'?'var(--accent-soft);color:var(--accent)':'var(--blue-soft);color:var(--blue)'}">${dm(p.i).slice(0,2)}</span><div><div class="t">${p.t}</div><div class="s">${st==='paid'?'сплачено із застосунку':`${wd(p.i)} ${dm(p.i)} · з «${envName(p.e)}»${low!=null?' · залишок після: '+fmt(low):''}`}</div>${st==='paid'?'':st==='sched'?`<span class="billst">Заплановано на ${dm(p.i)}</span>`:`<button class="billbtn" data-bill="${p.id}">Оплатити</button>`}</div><span class="amt ${low!=null&&low<0?'neg':'out'}">${st==='paid'?'✓ ':''}−${fmt(p.a)}</span></div>`}).join('')}</div></div>`}
+function calHTML(f){f=f||forecast();return `<div class="card" id="c-cal"><div class="ct">Платежі<span class="sub">30 днів</span></div><div class="list">${CAL().map(p=>{const st=billState(p.id),low=p.j!=null&&st!=='paid'?f.days[p.i].low:null;
+  return `<div class="li${st==='paid'?' paidli':''}"><span class="ic" style="background:var(--surface-2);color:var(--ink);border-radius:11px;flex-direction:column;line-height:1"><b style="font-size:13px">${dm(p.i).slice(0,2)}</b><small style="font-size:9px;color:var(--muted);font-weight:500">${wd(p.i)}</small></span><div><div class="t">${p.t}</div><div class="s">${st==='paid'?'сплачено':`${envName(p.e)}${low!=null&&low<0?` · не вистачить ${fmt(-low)}`:''}`}</div>${st==='paid'?'':st==='sched'?`<span class="billst">Заплановано на ${dm(p.i)}</span>`:`<button class="billbtn" data-bill="${p.id}">Оплатити</button>`}</div><span class="amt ${low!=null&&low<0?'neg':'out'}">−${fmt(p.a)}</span></div>`}).join('')}</div></div>`}
 function bindBills(){document.querySelectorAll('[data-bill]').forEach(b=>b.onclick=()=>openBill(b.dataset.bill))}
+const METHODS=[['card','Картка ФОП','•• 4610','#141614','VISA'],['bank','Рахунок ФОП','Райффайзен Банк','#C9A800','IBAN'],['liqpay','LiqPay','','#1B7A3E','LP'],['wfp','WayForPay','','#3A4FB8','WFP']];
 function openBill(id){const p=CAL().find(x=>x.id===id);if(!p)return;const f=forecast();
-  const now=p.j==null&&S.bal[p.e]>=p.a;                               // з інших конвертів платимо одразу, якщо вистачає
-  const gapBefore=p.j!=null&&f.gap&&f.gap.i<=p.i;                      // для «Операційних» дивимось прогноз радара
-  const canSched=p.j!=null&&!gapBefore;                               // з «Операційних» не платимо наперед, щоб не відкрити розрив: плануємо на дату платежу
-  const short=now?0:p.j!=null?(gapBefore?f.gap.need:0):p.a-S.bal[p.e];
-  const M=[['bank','Рахунок ФОП · Райффайзен'],['liqpay','LiqPay'],['wfp','WayForPay']];let m='bank';
-  openSheet(`<div class="lbl">Оплата з застосунку</div><h3>${p.t}</h3>
-    <div class="kv"><span>Отримувач</span><span>${PAYEE[p.id]}</span><span>Сума</span><span>${fmt(p.a)}</span><span>Дата платежу</span><span>${wd(p.i)} ${dm(p.i)}</span><span>З конверта</span><span>«${envName(p.e)}», зараз ${fmt(S.bal[p.e])}</span></div>
-    ${now||canSched?`<div class="small">Реквізити підтягнуто з рахунку автоматично. Оберіть, чим платити:</div><div class="paym">${M.map(([k,n])=>`<button class="gchip" data-m="${k}" aria-pressed="${k===m}">${n}</button>`).join('')}</div>
-      <div class="hint ok">${now?'У конверті вистачає грошей, платіж пройде одразу.':`Радар перевірив: до ${dm(p.i)} у конверті вистачить грошей. Платіж піде автоматично в день оплати, раніше гроші з конверта не списуються.`}</div>
-      <div class="btncol"><button class="btn accent" id="bl-go">${now?'Оплатити '+fmt(p.a):'Запланувати на '+dm(p.i)}</button><button class="btn ghost" id="bl-cl">Скасувати</button></div>`
-    :`<div class="hint crit">${p.j!=null?`До ${dm(p.i)} у конверті не вистачить ${fmt(short)}. Спершу перекрийте касовий розрив на вкладці радара.`:`У конверті не вистачає ${fmt(short)}. Він доповнюється з кожного надходження, оплатити можна, коли набереться сума.`}</div>
-      <div class="btncol">${p.j!=null?`<button class="btn crit" id="bl-gap">Перекрити розрив</button>`:''}<button class="btn ghost" id="bl-cl">Зрозуміло</button></div>`}
-    <p class="note">У прототипі оплата імітується, гроші нікуди не йдуть.</p>`,'Оплата з застосунку');
+  const enough=S.bal[p.e]>=p.a;
+  const now=enough&&(p.j==null||!forecast({now:p.id}).gap);         // платимо одразу, якщо в конверті вистачає і це не відкриє розрив
+  const gapBefore=p.j!=null&&f.gap&&f.gap.i<=p.i;                      // для «Витрат» дивимось прогноз
+  const canSched=!now&&p.j!=null&&!gapBefore;                          // інакше плануємо на дату платежу
+  const short=p.j!=null?(gapBefore?f.gap.need:0):p.a-S.bal[p.e];
+  let m='card';
+  openSheet(`<div class="lbl">${PAYEE[p.id]}</div><h3>${p.t} · ${fmt(p.a)}</h3>
+    <div class="kv"><span>Дата</span><span>${wd(p.i)} ${dm(p.i)}</span><span>Конверт</span><span>${envName(p.e)} · ${fmt(S.bal[p.e])}</span></div>
+    ${now||canSched?`<div class="paym">${METHODS.map(([k,n,s,c,l])=>`<button class="pm" data-m="${k}" aria-pressed="${k===m}"><span class="pmi" style="background:${c}">${l}</span><span>${n}${s?`<span class="small" style="display:block">${s}</span>`:''}</span><span class="rd"></span></button>`).join('')}</div>
+      <div class="btncol"><button class="btn" id="bl-go">${now?'Оплатити '+fmt(p.a):'Запланувати на '+dm(p.i)}</button><button class="btn ghost" id="bl-cl">Скасувати</button></div>
+      ${canSched?`<p class="note">Сьогодні в конверті менше, ніж треба. Платіж піде ${dm(p.i)}, коли надходження його доповнять.</p>`:''}`
+    :`<div class="hint crit">${p.j!=null?`${dm(p.i)} не вистачить ${fmt(short)}. Спершу закрийте розрив.`:`Не вистачає ${fmt(short)}. Конверт доповнюється з кожного надходження.`}</div>
+      <div class="btncol">${p.j!=null?`<button class="btn crit" id="bl-gap">Закрити розрив</button>`:''}<button class="btn ghost" id="bl-cl">Зрозуміло</button></div>`}`,'Оплата');
   $('bl-cl').onclick=closeSheet;
   const gb=$('bl-gap');if(gb)gb.onclick=()=>{closeSheet();setTimeout(()=>{setTab('radar');setTimeout(runRadar,350)},250)};
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{m=b.dataset.m;document.querySelectorAll('[data-m]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
-  const go_=$('bl-go');if(go_)go_.onclick=()=>{const mn=M.find(x=>x[0]===m)[1];go_.disabled=true;go_.textContent='Обробляємо…';
-    setTimeout(()=>{S.paid=S.paid||{};if(now){S.paid[p.id]='paid';S.bal[p.e]-=p.a}else S.paid[p.id]='sched';save();closeSheet();render(false);
-      toast(now?`Сплачено ${fmt(p.a)} через ${mn}`:`Заплановано: ${dm(p.i)} через ${mn}`);setTimeout(()=>flash('c-cal'),300)},RM?10:1100)}}
+  const go_=$('bl-go');if(go_)go_.onclick=()=>{const mm=METHODS.find(x=>x[0]===m),mn=mm[1]+(mm[2]&&m==='card'?' '+mm[2]:'');go_.disabled=true;go_.innerHTML='<span class="spin" style="width:18px;height:18px;border-color:rgba(255,255,255,.3);border-top-color:#fff"></span>';
+    setTimeout(()=>{S.paid=S.paid||{};if(now){S.paid[p.id]='paid';S.bal[p.e]-=p.a}else S.paid[p.id]='sched';
+      addNote('bill',now?`Сплачено: ${p.t.toLowerCase()}`:`Заплановано: ${p.t.toLowerCase()}`,`${fmt(p.a)}, ${mn}${now?'':', '+dm(p.i)}`);save();closeSheet();if(tab!=='radar')setTab('radar');else render(false);
+      toast(now?`Сплачено ${fmt(p.a)}`:`Заплановано на ${dm(p.i)}`);setTimeout(()=>flash('c-cal'),300)},RM?10:1100)}}
 
-/* ---------- «Вивести собі»: безпечна межа за радаром (конверт «Собі» не блокується, лише попередження) ---------- */
+/* ---------- «Вивести собі»: безпечна межа за прогнозом (конверт «Собі» не блокується, лише попередження) ---------- */
 function spendInfo(){const f=forecast();return{gap:f.gap,safe:f.gap?0:S.bal.self}}
 function openWithdraw(){S.done.spend=true;save();paintSteps();
   const sp=spendInfo();
   const hcls=a=>a>S.bal.self?'hint crit':sp.gap?'hint':'hint ok';   // зелена, коли безпечно; бежева, коли не радимо; червона, коли стільки немає
-  const hint=a=>a>S.bal.self?`Стільки немає в конверті «Собі»: ${fmt(S.bal.self)}.`:sp.gap?`<b>Не радимо:</b> ${dm(sp.gap.i)} не вистачає ${fmt(sp.gap.need)} на «${sp.gap.pay.t}».`:'Безпечно: усі платежі на 30 днів покриті.';
-  openSheet(`<div class="lbl">Вивести собі</div><h3>Скільки хочете зняти?</h3>
-    <label class="field" for="wd-amt">Сума, ₴<input id="wd-amt" type="number" inputmode="numeric" min="0" step="100" value="${Math.round(S.bal.self)}"></label>
+  const hint=a=>a>S.bal.self?`У «Собі» лише ${fmt(S.bal.self)}`:sp.gap?`Не радимо: ${dm(sp.gap.i)} бракує ${fmt(sp.gap.need)} (${sp.gap.pay.t.toLowerCase()})`:'Безпечно: платежі на 30 днів покриті';
+  openSheet(`<div class="lbl">З конверта «Собі» · ${fmt(S.bal.self)}</div><h3>Вивести собі</h3>
+    <label class="field" for="wd-amt">Сума, ₴<input id="wd-amt" type="text" inputmode="numeric" autocomplete="off" value="${fmtn(S.bal.self)}"></label>
     <div class="${hcls(S.bal.self)}" id="wd-res">${hint(S.bal.self)}</div>
-    <button class="btn accent" id="wd-ok">${sp.gap?'Вивести все одно':'Вивести'}</button><button class="btn ghost" id="wd-cl">Не виводити</button>
-    <p class="note">Гроші бізнесу й гроші власника лежать на одному рахунку. Застосунок показує межу, рішення завжди за вами.</p>`,'Вивести собі');
-  const amt=()=>Math.max(0,Math.round(+$('wd-amt').value||0));
-  $('wd-amt').oninput=()=>{const r=$('wd-res');r.innerHTML=hint(amt());r.className=hcls(amt())};
+    <div class="btncol"><button class="btn" id="wd-ok">${sp.gap?'Вивести все одно':'Вивести'}</button><button class="btn ghost" id="wd-cl">Скасувати</button></div>`,'Вивести собі');
+  const amt=()=>Math.max(0,parseAmt($('wd-amt').value));
+  $('wd-amt').oninput=()=>{const i=$('wd-amt'),n=parseAmt(i.value);i.value=n?fmtn(n):'';const r=$('wd-res');r.innerHTML=hint(amt());r.className=hcls(amt())};
   $('wd-cl').onclick=closeSheet;
   $('wd-ok').onclick=()=>{const a=amt();if(!(a>0)||a>S.bal.self)return;S.bal.self-=a;save();closeSheet();render(false);toast('Виведено '+fmt(a))};
 }
 
+/* ---------- овердрафт: 4 кроки ---------- */
 let od={};
 function openOD(amt,g){od={amt,g,step:1};drawOD()}
 function drawOD(){
   const days=odDays(od.amt),cost=od.amt*OD_RATE*days/365;
   const bar=`<div class="stp">${[1,2,3,4].map(i=>`<i class="${i<=od.step?'on':''}"></i>`).join('')}</div>`;let b='';
-  if(od.step===1)b=`<div class="lbl">Крок 1 з 4 · Сума</div><div class="big num">${fmtn(od.amt)}<small>₴</small></div>
-    <div class="small">${od.amt-od.g.need>=100?`Дефіцит на ${dm(od.g.i)} ${fmt(od.g.need)} плюс те, що до цієї дати піде на погашення (${OD_SHARE*100}% надходжень), округлено до сотні.`:`Рівно дефіцит на ${dm(od.g.i)}, округлено до сотні.`}</div>
-    <div class="kv"><span>Банк-партнер</span><span>Raiffeisen Bank</span><span>Рахунок ФОП</span><span>відкритий у Райффайзен Банку</span><span>Продукт</span><span>Овердрафт для ФОП</span><span>Ставка (умовно)</span><span>${OD_RATE*100}% річних</span><span>Погашення</span><span>${OD_SHARE*100}% кожного надходження, після податку і до поділу по конвертах</span><span>Закриється за</span><span>≈ ${days} дн.</span><span>Переплата</span><span>≈ ${fmt(cost)}</span></div>
-    <button class="btn accent" id="nx">Надіслати запит у банк</button><button class="btn ghost" id="cl">Скасувати</button>
-    <p class="note">Овердрафт доступний, бо рахунок ФОП відкритий у Райффайзен Банку. Платформа передає банку суму, ІПН і прогноз грошового потоку. Відкритого API Raiffeisen для МСБ немає, тому цей крок у прототипі імітується, умови умовні.</p>`;
+  if(od.step===1)b=`<div class="lbl">Овердрафт · Райффайзен Банк</div><div class="big num">${fmtn(od.amt)}<small>₴</small></div>
+    <div class="small">${od.amt-od.g.need>=100?`Дефіцит ${fmt(od.g.need)} і погашення до ${dm(od.g.i)}`:`Рівно дефіцит на ${dm(od.g.i)}`}</div>
+    <div class="kv"><span>Ставка</span><span>${OD_RATE*100}% річних</span><span>Погашення</span><span>${OD_SHARE*100}% з надходжень</span><span>Закриється за</span><span>≈ ${days} дн.</span><span>Переплата</span><span>≈ ${fmt(cost)}</span></div>
+    <div class="btncol"><button class="btn" id="nx">Надіслати запит</button><button class="btn ghost" id="cl">Скасувати</button></div>
+    <p class="note">Доступно, бо рахунок ФОП у Райффайзен Банку. Умови умовні.</p>`;
   if(od.step===2){S.done.bank=true;save()}
-  if(od.step===2)b=`<div class="lbl">Крок 2 з 4 · Рішення банку</div><h3>Банк перевіряє дані з платформи</h3>
-    <div class="checks" id="checks"><div><span class="c"></span>Обороти за 8 тижнів</div><div><span class="c"></span>Регулярні платежі без прострочок</div><div><span class="c"></span>Прогноз: борг закриється за ${days} дн.</div></div>`;
-  if(od.step===3)b=`<div class="lbl">Крок 3 з 4 · Підпис</div><h3>Ліміт ${fmt(od.amt)} схвалено</h3>
-    <div class="small">Підпишіть договір у застосунку банку або через Дія.Підпис. Гроші надійдуть одразу.</div>
-    <button class="btn accent" id="nx">Підписати через Дія.Підпис</button><button class="btn ghost" id="cl">Пізніше</button>`;
+  if(od.step===2)b=`<div class="lbl">Райффайзен Банк</div><h3>Банк перевіряє дані</h3>
+    <div class="checks" id="checks"><div><span class="c"></span>Обороти за 8 тижнів</div><div><span class="c"></span>Платежі без прострочок</div><div><span class="c"></span>Прогноз: борг закриється за ${days} дн.</div></div>`;
+  if(od.step===3)b=`<div class="lbl">Схвалено</div><h3>Ліміт ${fmt(od.amt)}</h3>
+    <div class="small">Підпишіть договір через Дія.Підпис. Гроші надійдуть одразу.</div>
+    <div class="btncol"><button class="btn" id="nx">Підписати в Дії</button><button class="btn ghost" id="cl">Пізніше</button></div>`;
   if(od.step===4)b=`<svg class="success" viewBox="0 0 64 64" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="28" pathLength="1"/><path d="M20 33l8 8 16-17" pathLength="1"/></svg>
-    <h3 style="text-align:center">${fmt(od.amt)} у конверті «Операційні»</h3><div class="small" style="text-align:center">${od.g.pay.t} ${dm(od.g.i)} буде сплачено. Борг гаситься сам приблизно за ${days} дн.</div>
-    <button class="btn accent" id="cl">Готово</button>`;
+    <h3 style="text-align:center">${fmt(od.amt)} у Витратах</h3><div class="small" style="text-align:center">${od.g.pay.t} ${dm(od.g.i)} покрито. Борг гаситься з надходжень ≈ ${days} дн.</div>
+    <button class="btn" id="cl">Готово</button>`;
   openSheet(bar+b,'Перекрити розрив');
   const nx=$('nx'),cl=$('cl');if(nx)nx.onclick=()=>{od.step++;if(od.step===4)finishOD();drawOD()};if(cl)cl.onclick=()=>{closeSheet();if(od.step===4)render(false)};
   if(od.step===2){[...document.querySelectorAll('#checks>div')].forEach((r,j)=>{sheetT.push(setTimeout(()=>r.classList.add('busy'),j*550));sheetT.push(setTimeout(()=>{r.classList.remove('busy');r.classList.add('done');r.querySelector('.c').innerHTML='<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-6"/></svg>'},j*550+480))});
     sheetT.push(setTimeout(()=>{od.step=3;drawOD()},2000))}
 }
-function finishOD(){S.bal.ops+=od.amt;S.od+=od.amt;S.debt=(S.debt||0)+od.amt;S.alert=false;S.done.gap=true;S.tx.unshift({src:'Raiffeisen',t:'Овердрафт, конверт «Операційні»',a:od.amt,ago:'щойно',fresh:true});save();paintSteps();$('badge').hidden=true}
+function finishOD(){S.bal.exp+=od.amt;S.od+=od.amt;S.debt=(S.debt||0)+od.amt;S.alert=false;S.done.gap=true;od.finished=true;odLeft=false;S.tx.unshift({src:'Raiffeisen',t:'Овердрафт у Витрати',a:od.amt,ago:'сьогодні '+new Date().toTimeString().slice(0,5),day:0,fresh:true});addNote('od','Овердрафт схвалено',`${fmt(od.amt)} у Витратах. ${od.g.pay.t} покрито`);save();paintSteps();$('badge').hidden=true}
 
 /* ======================================================================
    СЦЕНАРІЙ ДЛЯ ЖУРІ
@@ -822,29 +901,29 @@ function point(sel,at){later(at,()=>{if(!auto)return;const el=document.querySele
   c.classList.add('on');c.style.transform=`translate(${Math.round(r.left+r.width*.6)}px,${Math.round(r.top+r.height*.55)}px)`;
   later(RM?50:700,()=>{if(!auto)return;c.classList.remove('clk');void c.offsetWidth;c.classList.add('clk');el.click()})})}
 const radarReady=()=>tab==='radar'&&$('cover');
-function ensureAlert(){if(radarReady())return 0;setTab('radar');later(350,runRadar);return 2500}   // скільки мс чекати, поки радар покаже картку розриву
+function ensureAlert(){if(radarReady())return 0;setTab('radar');later(350,runRadar);return 2200}   // скільки мс чекати, поки прогноз покаже картку розриву
 const DEMO=[
   {k:'dash', t:'Дашборд',                s:'гроші, конверти, пошта, каси', d:5000,  a(){S.done.dash=true;setTab('home')}},
   {k:'pct',  t:'Відсотки і податки',     s:'група ФОП і частки конвертів', d:7000,  a(){setTab('env');later(350,openPct);if(auto){point('.gchip[data-g="3"]',1500);point('#pct-save',3000)}}},
   {k:'pay',  t:'Вхідний платіж',         s:'тестовий WayForPay або імітація', d:5000, a(){setTab('env');later(350,openPay);if(auto)point('#pay-sim',1800)}},
-  {k:'env',  t:'Поділ по конвертах',     s:'кнопка «Поділити по конвертах»', d:7000, a(){setTab('env');later(450,()=>{if(auto)flash('c-pending');else if(S.unalloc>0)splitNow();else if(!S.done.pay)openPay()});if(auto)point('#split-now',1500)}},
-  {k:'spend',t:'Можна витратити на себе', s:'межа за радаром',               d:6500,  a(){setTab('home');later(500,()=>{if(auto)flash('c-spend');else openWithdraw()});if(auto){point('#spend-open',1500);point('#wd-cl',4500)}}},
-  {k:'alert',t:'Сповіщення про розрив',  s:'пуш у Telegram',                d:6000,  a(){setTab('radar');if(auto)point('#run',600);else later(350,runRadar)}},
-  {k:'radar',t:'Радар',                  s:'прогноз на 30 днів',            d:5000,  a(){S.done.radar=true;save();const w=ensureAlert();later(w+300,()=>{hidePush();flash($('c-alert')?'c-alert':'c-chart')})}},
+  {k:'env',  t:'Поділ по конвертах',     s:'кнопка «Розподілити»', d:7000, a(){setTab('env');later(450,()=>{if(auto)flash('c-pending');else if(S.unalloc>0)splitNow();else if(!S.done.pay)openPay()});if(auto)point('#split-now',1500)}},
+  {k:'spend',t:'Можна вивести собі',     s:'межа за прогнозом',             d:6500,  a(){setTab('home');later(500,()=>{if(auto)flash('c-spend');else openWithdraw()});if(auto){point('#spend-open',1500);point('#wd-cl',4500)}}},
+  {k:'alert',t:'Сповіщення про розрив',  s:'пуш застосунку',                d:6000,  a(){setTab('radar');if(auto)point('#run',600);else later(350,runRadar)}},
+  {k:'radar',t:'Прогноз',                s:'30 днів уперед',                d:5000,  a(){S.done.radar=true;save();const w=ensureAlert();later(w+300,()=>{hidePush();flash($('c-alert')?'c-alert':'c-chart')})}},
   {k:'gap',  t:'Овердрафт',              s:'перекрити розрив',              d:6000,  a(){const w=ensureAlert();if(auto)point('#cover',w+500);else later(w+400,()=>{const c=$('cover');if(c)c.click()})}},
   {k:'bank', t:'Рішення банку',          s:'перевірка і підпис',            d:8000,  a(){if(auto){point('#nx',600);point('#nx',3800);point('#cl',5800)}else{const w=ensureAlert();later(w+400,()=>{const c=$('cover');if(c)c.click()})}}},
-  {k:'repay',t:'Погашення',              s:'30% з нового платежу',          d:10500, a(){setTab('env');later(400,openPay);if(auto){later(900,()=>{const a=$('pay-amt');if(a)a.value=3000});point('#pay-sim',1600);point('#split-now',3400);later(8200,()=>{setTab('home');flash('c-spend')})}}},
+  {k:'repay',t:'Погашення',              s:'30% з нового платежу',          d:10500, a(){setTab('env');later(400,openPay);if(auto){later(900,()=>{const a=$('pay-amt');if(a)a.value='3 000'});point('#pay-sim',1600);point('#split-now',3400);later(8200,()=>{setTab('home');flash('c-spend')})}}},
 ];
 const CAPS={
   dash:'Олена, ФОП 3 групи, продає взуття. Гроші на рахунку є, але скільки з них її? Фінансист показує їх по конвертах, а поруч посилки в дорозі й чеки з каси.',
-  pct:'Олена один раз задає відсотки. Податок підтягується з групи ФОП, решту ділить сама: закупівля, оренда й зарплата, реклама, резерв і собі.',
-  pay:'Клієнтка оплачує туфлі через WayForPay. Гроші приходять на рахунок ФОП і поки лежать однією сумою.',
+  pct:'Олена один раз задає відсотки. Податок підтягується з групи ФОП, решту ділить сама: закупівля, витрати, резерв і собі.',
+  pay:'Клієнтка оплачує туфлі. Гроші приходять на рахунок ФОП і поки лежать однією сумою.',
   env:'Одна кнопка, і платіж розкладається: спершу податок, потім кожен конверт за своїм відсотком.',
   spend:'Скільки можна взяти собі? Застосунок рахує безпечну межу і попереджає, якщо попереду касовий розрив.',
-  alert:'Радар дивиться на 30 днів уперед. Через 2 дні оренда, а в конверті не вистачає. Олена отримує пуш у Telegram.',
-  radar:'На графіку видно, коли саме залишок у конверті йде в мінус і на скільки.',
+  alert:'Прогноз дивиться на 30 днів уперед. Через 2 дні оренда, а у Витратах не вистачає. Олені приходить пуш.',
+  radar:'На графіку видно, коли саме залишок іде в мінус і на скільки.',
   gap:'Розрив можна закрити кількома способами. Найшвидший: овердрафт Райффайзену рівно на суму дефіциту.',
-  bank:'Банк бачить обороти й прогноз з платформи, тому рішення приходить одразу. Олена підписує, гроші вже в конверті.',
+  bank:'Банк бачить обороти й прогноз з платформи, тому рішення приходить одразу. Олена підписує, гроші вже у Витратах.',
   repay:'Наступні надходження самі гасять овердрафт: 30% з кожного платежу, решта йде по конвертах. Борг закривається за кілька днів.'};   // чернетка, текст правте тут
 DEMO.forEach(x=>{x.c=CAPS[x.k]||x.t;x.d=Math.max(x.d,Math.round(x.c.length*60))});   // тривалість кроку не менша, ніж треба, щоб дочитати підпис
 const modeHTML=()=>`<span class="mode" id="mode"><button data-mode="manual" aria-pressed="${!auto}">Вручну</button><button data-mode="auto" aria-pressed="${auto}">Авто</button></span>`;
@@ -862,69 +941,74 @@ function runStep(i){
   s.a();paintSteps();
 }
 function setMode(a){auto=a;clearTimers();hideCursor();if(a){closeSheet();hidePush();restartDemo()}else{$('subs').hidden=true;paintSteps()}}
-function resetDemo(){S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));S.auth=true;paintUser();for(const k in lastNum)delete lastNum[k];save();closeSheet();hidePush();setTab('home');toast('Демо скинуто')}
+function resetDemo(){S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));S.auth=true;paintUser();for(const k in lastNum)delete lastNum[k];for(const k in reminded)delete reminded[k];od={};odLeft=false;save();closeSheet();hidePush();setTab('home');toast('Демо скинуто')}
 function restartDemo(){clearTimers();hideCursor();resetDemo();di=-1;if(auto)later(900,()=>runStep(0));else{$('subs').hidden=true;paintSteps()}}
-$('demo-btn').onclick=()=>{openSheet(`<div class="lbl">Сценарій для журі</div><h3>${DEMO.length} кроків показу</h3><div class="jsteps" id="jsteps-sheet"></div><button class="btn ghost" data-reset>↺ Скинути демо до початку</button>`,'Сценарій для журі');paintSteps();bindReset()};
+$('demo-btn').onclick=()=>{openSheet(`<h3>Сценарій демо</h3><div class="jsteps" id="jsteps-sheet"></div><button class="btn ghost" data-reset>Скинути демо</button>`,'Сценарій демо');paintSteps();bindReset()};
 function bindReset(){document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=restartDemo)}
 bindReset();
 document.addEventListener('keydown',e=>{if(e.key!==' '&&e.key!=='ArrowRight')return;if(!auto||e.target.closest('input,select,textarea,button,[contenteditable]'))return;   // у ручному режимі пробіл нічого не запускає
   e.preventDefault();const n=Math.min(DEMO.length-1,di+1);if(auto){setMode(false)}runStep(n)});
-
+/* панель демо можна сховати, щоб на екрані був лише телефон */
+const UIK='fk-ui';const ui=(()=>{try{return JSON.parse(localStorage.getItem(UIK)||'{}')}catch(e){return{}}})();
+const setPanel=v=>{document.body.classList.toggle('nopanel',!v);$('p-show').hidden=v;ui.panel=v;try{localStorage.setItem(UIK,JSON.stringify(ui))}catch(e){}};
+$('p-hide').onclick=()=>setPanel(false);$('p-show').onclick=()=>setPanel(true);setPanel(ui.panel!==false);
 
 /* ======================================================================
    ОСОБИСТИЙ КАБІНЕТ (демо: без сервера і паролів, дані лише в цьому браузері)
    ====================================================================== */
-const DEF_PROFILE={name:'Олена',last:'Коваль',shop:'Крок',phone:'380670000000'};
-if(!S.profile)S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));if(S.auth===undefined)S.auth=true;
-const voc=n=>{n=(n||'').trim();if(/ій$/.test(n))return n.slice(0,-2)+'ію';if(/а$/.test(n))return n.slice(0,-1)+'о';if(/я$/.test(n))return n.slice(0,-1)+'є';return n};
+const DEF_PROFILE={name:'Олена',last:'Коваль',shop:'Крок',phone:'380670000000',email:'olena@krok.shop'};
+if(!S.profile)S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));if(S.auth===undefined)S.auth=true;if(!S.profile.email)S.profile.email=DEF_PROFILE.email;
 const initials=p=>(((p.name||'?')[0]||'')+((p.last||p.shop||'')[0]||'')).toUpperCase();
 const digits=s=>(s||'').replace(/\D/g,'');
 const prettyPhone=d=>{d=digits(d);if(d.length===12)return `+${d.slice(0,3)} ${d.slice(3,5)} ${d.slice(5,8)} ${d.slice(8,10)} ${d.slice(10)}`;return d?'+'+d:''};
 const GROUPS=[['12','1–2 група'],['3','3 група'],['3v','3 група з ПДВ']];
-function paintUser(){const p=S.profile||DEF_PROFILE;document.querySelectorAll('[data-hello]').forEach(el=>el.textContent=voc(p.name)+(el.dataset.hello||''));
-  document.querySelectorAll('[data-avatar]').forEach(el=>{el.textContent=initials(p);el.setAttribute('aria-label','Профіль: '+p.name+' '+(p.last||''))})}
+function paintUser(){const p=S.profile||DEF_PROFILE;document.querySelectorAll('[data-hello]').forEach(el=>el.textContent=p.name+(p.last?' '+p.last[0]+'.':''));
+  document.querySelectorAll('[data-shop]').forEach(el=>el.textContent='ФОП · '+(p.shop||''));
+  document.querySelectorAll('[data-ini]').forEach(el=>el.textContent=initials(p))}
 let authEl=null;
 function openAuth(step,edit){
-  if(!authEl){authEl=document.createElement('div');authEl.className='auth';(()=>document.getElementById('app'))().appendChild(authEl)}
-  authEl.classList.remove('closing');const P=S.profile||{};const dots=n=>`<div class="dots">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;
+  if(!authEl){authEl=document.createElement('div');authEl.className='auth';$('app').appendChild(authEl)}
+  authEl.classList.remove('closing');const P=S.profile||{};
   const logo=`<img class="logo" src="icons/icon-192.png" alt="">`;
-  if(step==='phone')authEl.innerHTML=`<div class="authbox">${logo}${dots(1)}<h2>Вхід у Фінансист</h2><p>Особистий кабінет ФОПа: конверти, платежі й радар. Дані бачите тільки ви.</p>
-    <label class="f" for="a-phone">Номер телефону<input id="a-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 000 00 00" value="${prettyPhone(P.phone)}"></label>
-    <button class="btn accent" id="a-next" disabled>Отримати код</button><div class="demo">Демо-вхід: SMS не надсилаються, акаунти не створюються на сервері.</div></div>`;
-  if(step==='code')authEl.innerHTML=`<div class="authbox">${logo}${dots(2)}<button class="back" id="a-back">← ${prettyPhone(authEl.dataset.phone)}</button><h2>Код з SMS</h2><p>Введіть 4 цифри з повідомлення.</p>
-    <label class="f" for="a-code">Код<input id="a-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="4" placeholder="····"></label>
-    <div class="demo">У демо підходить будь-який код з 4 цифр.</div></div>`;
-  if(step==='profile')authEl.innerHTML=`<div class="authbox">${logo}${dots(3)}<h2>${edit?'Ваші дані':'Кілька слів про вас'}</h2><p>Група ФОП потрібна, щоб податок підтягувався автоматично.</p>
+  if(step==='phone')authEl.innerHTML=`<div class="authbox">${logo}<h2>Вхід</h2><p>Номер, на який відкрито рахунок ФОП.</p>
+    <label class="f" for="a-phone">Телефон<input id="a-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 000 00 00" value="${prettyPhone(P.phone)}"></label>
+    <button class="btn" id="a-next" disabled>Отримати код</button></div>`;
+  if(step==='code')authEl.innerHTML=`<div class="authbox">${logo}<button class="back" id="a-back">${prettyPhone(authEl.dataset.phone)} · змінити</button><h2>Код з SMS</h2><p>Надіслали 4 цифри.</p>
+    <label class="f" for="a-code">Код<input id="a-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="4" placeholder="····"></label></div>`;
+  if(step==='profile')authEl.innerHTML=`<div class="authbox">${logo}<h2>${edit?'Ваші дані':'Про ваш бізнес'}</h2><p>Група ФОП потрібна, щоб податок рахувався сам.</p>
     <div class="two"><label class="f" for="a-name">Ім’я<input id="a-name" autocomplete="given-name" value="${edit?(P.name||''):''}"></label><label class="f" for="a-last">Прізвище<input id="a-last" autocomplete="family-name" value="${edit?(P.last||''):''}"></label></div>
-    <label class="f" for="a-shop">Назва магазину<input id="a-shop" value="${edit?(P.shop||''):''}"></label>
+    <label class="f" for="a-shop">Магазин<input id="a-shop" value="${edit?(P.shop||''):''}"></label>
     <div class="f">Група ФОП<div class="gchips" id="a-group">${GROUPS.map(([v,n])=>`<button class="gchip" data-g="${v}" aria-pressed="${S.group===v}">${n}</button>`).join('')}</div></div>
-    <button class="btn accent" id="a-save" disabled>${edit?'Зберегти':'Перейти до кабінету'}</button>${edit?'<button class="btn ghost" id="a-cancel">Скасувати</button>':''}</div>`;
+    <button class="btn" id="a-save" disabled>${edit?'Зберегти':'Далі'}</button>${edit?'<button class="btn ghost" id="a-cancel">Скасувати</button>':''}</div>`;
   const $a=id=>authEl.querySelector('#'+id);
   if(step==='phone'){const i=$a('a-phone'),b=$a('a-next');const chk=()=>{b.disabled=digits(i.value).length<10};i.oninput=chk;chk();
     b.onclick=()=>{let d=digits(i.value);if(d.length===10)d='38'+d;authEl.dataset.phone=d;openAuth('code')};i.onkeydown=e=>{if(e.key==='Enter'&&!b.disabled)b.click()};setTimeout(()=>i.focus(),50)}
   if(step==='code'){const i=$a('a-code');$a('a-back').onclick=()=>openAuth('phone');setTimeout(()=>i.focus(),50);
-    i.oninput=()=>{i.value=digits(i.value).slice(0,4);if(i.value.length===4){const d=authEl.dataset.phone;if(S.profile&&digits(S.profile.phone)===d&&S.profile.name){S.auth=true;finishAuth()}else{S.profile={phone:d};openAuth('profile')}}}}
+    i.oninput=()=>{i.value=digits(i.value).slice(0,4);if(i.value.length===4){const d=authEl.dataset.phone;if(S.profile&&digits(S.profile.phone)===d&&S.profile.name){S.auth=true;finishAuth()}else{S.profile={phone:d,email:''};openAuth('profile')}}}}
   if(step==='profile'){let g=S.group;const sv=$a('a-save');const chk=()=>{sv.disabled=!($a('a-name').value.trim()&&$a('a-shop').value.trim())};['a-name','a-last','a-shop'].forEach(id=>$a(id).oninput=chk);chk();
     authEl.querySelectorAll('.gchip').forEach(b=>b.onclick=()=>{g=b.dataset.g;authEl.querySelectorAll('.gchip').forEach(x=>x.setAttribute('aria-pressed',x===b))});
     sv.onclick=()=>{S.profile=Object.assign({},S.profile,{name:$a('a-name').value.trim(),last:$a('a-last').value.trim(),shop:$a('a-shop').value.trim()});S.group=g;S.auth=true;finishAuth()};
     const c=$a('a-cancel');if(c)c.onclick=closeAuth;setTimeout(()=>$a('a-name').focus(),50)}
 }
 function closeAuth(){if(!authEl)return;const el=authEl;authEl=null;el.classList.add('closing');setTimeout(()=>el.remove(),250)}
-function finishAuth(){save();paintUser();closeAuth();(()=>render(false))();toast('Вітаємо, '+voc(S.profile.name)+'!')}
-function logout(){S.auth=false;save();(()=>{closeSheet();hidePush()})();openAuth('phone')}
+function finishAuth(){save();paintUser();closeAuth();render(false)}
+function logout(){S.auth=false;save();closeSheet();hidePush();openAuth('phone')}
 function openProfile(){const p=S.profile||{};const g=(GROUPS.find(x=>x[0]===S.group)||['','—'])[1];
-  ((h,l)=>openSheet(h,l))(`<div class="profhead"><span class="avatar">${initials(p)}</span><div><h3 style="margin:0">${p.name||''} ${p.last||''}</h3><div class="small">ФОП, магазин «${p.shop||''}»</div></div></div>
-   <div><div class="profrow"><span>Телефон</span><b>${prettyPhone(p.phone)}</b></div><div class="profrow"><span>Група ФОП</span><b>${g}</b></div><div class="profrow"><span>Податок</span><b>${S.group==='12'?'фіксований щомісяця':S.group==='3v'?'3% + 1%':'5% + 1%'}</b></div><div class="profrow"><span>Рахунок ФОП</span><b>Райффайзен Банк</b></div><div class="profrow"><span>Дані зберігаються</span><b>у цьому браузері</b></div></div>
-   <button class="btn ghost" id="pf-edit">Змінити дані</button><button class="btn" id="pf-out">Вийти</button>`,'Профіль');
-  document.getElementById('pf-edit').onclick=()=>{(()=>{closeSheet();hidePush()})();openAuth('profile',true)};document.getElementById('pf-out').onclick=logout}
+  const canPush='Notification' in window;
+  openSheet(`<div class="profhead"><span class="avatar">${initials(p)}</span><div><h3 style="margin:0">${p.name||''} ${p.last||''}</h3><div class="small">ФОП · ${p.shop||''}</div></div></div>
+   <div><div class="profrow"><span>Телефон</span><b>${prettyPhone(p.phone)}</b></div><div class="profrow"><span>Група</span><b>${g}</b></div><div class="profrow"><span>Рахунок</span><b>Райффайзен Банк</b></div><div class="profrow"><span>Тариф</span><b>Пробний · ще 14 днів</b></div>
+   ${canPush?`<label class="tgl profrow" style="border-top:1px solid var(--line)"><span style="color:var(--ink)">Сповіщення на телефон</span><input type="checkbox" id="pf-push"${S.sysPush&&Notification.permission==='granted'?' checked':''}><span class="sw"></span></label>`:''}</div>
+   <div class="btncol"><button class="btn ghost" id="pf-edit">Змінити дані</button><button class="btn ghost" id="pf-out" style="color:var(--crit)">Вийти</button></div>`,'Профіль');
+  $('pf-edit').onclick=()=>{closeSheet();hidePush();openAuth('profile',true)};$('pf-out').onclick=logout;
+  const pp=$('pf-push');if(pp)pp.onchange=async()=>{if(pp.checked){let r=Notification.permission;if(r==='default'){try{r=await Notification.requestPermission()}catch(e){}}S.sysPush=r==='granted';pp.checked=S.sysPush;save();toast(S.sysPush?'Сповіщення увімкнено':'Браузер не дозволив сповіщення')}else{S.sysPush=false;save()}}}
 document.querySelectorAll('[data-avatar]').forEach(b=>b.onclick=openProfile);
 paintUser();
 
-/* clock in the fake status bar */
+/* годинник у статус-барі рамки */
 const tick=()=>{const d=new Date();$('clock').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')};tick();setInterval(tick,30000);
 
-/* QR to this page */
-addEventListener('load',()=>{try{if(window.QRCode&&/^https?:/.test(location.href))new QRCode($('qr'),{text:location.href.split('#')[0],width:94,height:94,colorDark:'#1A1D1B',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});else $('qr').textContent=''}catch(e){}});
+/* QR на цю сторінку */
+addEventListener('load',()=>{try{if(window.QRCode&&/^https?:/.test(location.href))new QRCode($('qr'),{text:location.href.split('#')[0],width:74,height:74,colorDark:'#141614',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});else $('qr').textContent=''}catch(e){}});
 
 /* PWA */
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)&&location.hostname!=='localhost')navigator.serviceWorker.register('sw.js').catch(()=>{});

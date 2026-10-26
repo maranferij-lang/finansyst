@@ -7,7 +7,7 @@ for(const [path,vp] of [['/',{width:390,height:844}],['/web/',{width:1440,height
  for(const mode of ['tr','mv']){
   const p=await b.newPage({viewport:vp});const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto(BASE+path);await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(900);
-  if(mode==='mv'){await p.evaluate(()=>{const j=JSON.parse(localStorage.getItem('fk-state'));j.s.bal.ops+=17000;localStorage.setItem('fk-state',JSON.stringify(j))});await p.reload();await p.waitForTimeout(900);}
+  if(mode==='mv'){await p.evaluate(()=>{const j=JSON.parse(localStorage.getItem('fk-state'));j.s.bal.exp+=2000;localStorage.setItem('fk-state',JSON.stringify(j))});await p.reload();await p.waitForTimeout(900);}
   if(T==='M')await p.click('[data-tab=radar]');else{await p.goto(BASE+path+'#radar');}
   await p.waitForTimeout(700);await p.click('#run');await p.waitForTimeout(2400);
   ok(`${T}-${mode} 1 є дві кнопки без овердрафту`,await p.locator('#alt-tr').isVisible()&&await p.locator('#alt-mv').isVisible());
@@ -19,8 +19,10 @@ for(const [path,vp] of [['/',{width:390,height:844}],['/web/',{width:1440,height
   ok(`${T}-${mode} 2 радар без розриву`,(await p.locator('#c-radar .chip').textContent()).includes('покрито'));
   ok(`${T}-${mode} 3 крок 5 зарахований, дзвіночок знято`,s1.done.gap&&!s1.alert);
   if(mode==='tr'){const moved=(s0.bal.res-s1.bal.res)+(s0.bal.self-s1.bal.self);
-    ok(`${T}-tr 4 гроші лише перекладені між конвертами`,s1.bal.ops-s0.bal.ops===moved&&moved>0&&s1.debt===0,moved);
-    ok(`${T}-tr 5 спершу Резерв`,s0.bal.res-s1.bal.res===Math.min(moved,s0.bal.res));}
+    ok(`${T}-tr 4 гроші лише перекладені між конвертами`,s1.bal.exp-s0.bal.exp===moved&&moved>0&&s1.debt===0,moved);
+    ok(`${T}-tr 5 спершу Резерв`,s0.bal.res-s1.bal.res===Math.min(moved,s0.bal.res));
+    await p.waitForTimeout(700);ok(`${T}-tr 6 одразу пропонує оплатити оренду`,await p.locator('#op-go').isVisible()&&/оренд/i.test(await p.textContent('#op-go')));
+    await p.click('#op-go');await p.waitForTimeout(600);ok(`${T}-tr 6b оплата відкривається з карткою ФОП`,(await p.getAttribute('[data-m=card]','aria-pressed'))==='true');}
   else{ok(`${T}-mv 4 оренду перенесено пізніше`,s1.moved&&s1.moved[0]===3,JSON.stringify(s1.moved));
     ok(`${T}-mv 5 баланси не змінились`,JSON.stringify(s1.bal)===JSON.stringify(s0.bal));
     await p.reload();await p.waitForTimeout(900);

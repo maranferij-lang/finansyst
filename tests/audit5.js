@@ -9,7 +9,7 @@ for(const [path,vp] of [['/',{width:390,height:844}],['/web/',{width:1440,height
  const p=await b.newPage({viewport:vp});const errs=[];p.on('pageerror',e=>errs.push(e.message));
  const CL=T==='M'?'.sheet':'.modal';
  const fresh=async(extra)=>{await p.goto(BASE+path);await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(900);
-   if(extra){const s0=await st(p);s0.bal.ops+=extra;await put(p,{bal:s0.bal});await p.reload();await p.waitForTimeout(900)}};
+   if(extra){const s0=await st(p);s0.bal.exp+=extra;await put(p,{bal:s0.bal});await p.reload();await p.waitForTimeout(900)}};
  const toRadar=async()=>{if(T==='M'){await p.click('[data-tab=radar]')}else{await p.goto(BASE+path+'#radar')}await p.waitForTimeout(700)};
  const toHome=async()=>{if(T==='M'){await p.click('[data-tab=home]')}else{await p.goto(BASE+path+'#over')}await p.waitForTimeout(700)};
  // 1. підказка у «Вивести собі»
@@ -30,19 +30,19 @@ for(const [path,vp] of [['/',{width:390,height:844}],['/web/',{width:1440,height
  ok(T+'6 Prom.ua при розриві: спершу перекрити',(await p.locator('#bl-gap').count())===1&&(await p.locator('#bl-go').count())===0);
  await p.click('#bl-cl');await p.waitForTimeout(400);
  // Meta з наповненим конвертом: оплата одразу через LiqPay
- {const sx=await st(p);sx.bal.mkt=20000;await put(p,{bal:sx.bal});await p.reload();await p.waitForTimeout(900);if(T==='M'){await p.click('[data-tab=radar]');await p.waitForTimeout(600)}}
+ {const sx=await st(p);sx.bal.exp=80000;await put(p,{bal:sx.bal});await p.reload();await p.waitForTimeout(900);if(T==='M'){await p.click('[data-tab=radar]');await p.waitForTimeout(600)}}
  await p.click('[data-bill=meta]');await p.waitForTimeout(500);await p.click('[data-m=liqpay]');await p.click('#bl-go');await p.waitForTimeout(1700);
- {const s1=await st(p);ok(T+'7 Meta сплачено одразу: «Маркетинг» −18 000, рядок позначено',s1.paid.meta==='paid'&&s1.bal.mkt===2000&&(await p.locator('[data-bill=meta]').count())===0&&(await p.locator('#c-cal .paidli').count())===1,JSON.stringify(s1.paid))}
- {const sx=await st(p);sx.bal.mkt=9600;sx.paid={};await put(p,{bal:sx.bal,paid:{}});await p.reload();await p.waitForTimeout(900);if(T==='M'){await p.click('[data-tab=radar]');await p.waitForTimeout(600)}}
- // 5. реклама: у конверті не вистачає
+ {const s1=await st(p);ok(T+'7 Meta сплачено одразу: «Витрати» −18 000, рядок позначено',s1.paid.meta==='paid'&&s1.bal.exp===62000&&(await p.locator('[data-bill=meta]').count())===0&&(await p.locator('#c-cal .paidli').count())===1,JSON.stringify(s1.paid))}
+ {const sx=await st(p);sx.bal.exp=28480;sx.paid={};await put(p,{bal:sx.bal,paid:{}});await p.reload();await p.waitForTimeout(900);if(T==='M'){await p.click('[data-tab=radar]');await p.waitForTimeout(600)}}
+ // 5. реклама після розриву: спершу закрити розрив
  await p.click('[data-bill=meta]');await p.waitForTimeout(500);
- ok(T+'8 Meta: не вистачає, без кнопки оплати',(await p.locator('#bl-go').count())===0&&(await p.locator('#bl-gap').count())===0);
+ ok(T+'8 Meta при розриві: без оплати, є «Закрити розрив»',(await p.locator('#bl-go').count())===0&&(await p.locator('#bl-gap').count())===1);
  await p.click('#bl-cl');await p.waitForTimeout(400);
  // 6. оренда без розриву, але сьогодні не вистачає: запланувати
- await fresh(20000);await toRadar();const a0=await st(p);
+ await fresh(6000);await toRadar();const a0=await st(p);
  await p.click('[data-bill=o0]');await p.waitForTimeout(500);ok(T+'9 кнопка «Запланувати»',(await p.textContent('#bl-go')).includes('Запланувати'));
  await p.click('#bl-go');await p.waitForTimeout(1700);const a1=await st(p);
- ok(T+'10 заплановано, баланс не змінився',a1.paid.o0==='sched'&&a1.bal.ops===a0.bal.ops&&(await p.locator('.billst').count())===1);
+ ok(T+'10 заплановано, баланс не змінився',a1.paid.o0==='sched'&&a1.bal.exp===a0.bal.exp&&(await p.locator('.billst').count())===1);
  // 7. пробіл у ручному режимі нічого не запускає
  await fresh();await p.mouse.click(5,5);await p.keyboard.press('Space');await p.waitForTimeout(900);
  ok(T+'11 пробіл у ручному режимі не відкриває кроки',(await p.locator(CL).count())===0&&await p.evaluate(()=>document.getElementById('subs').hidden));

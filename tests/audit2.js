@@ -8,7 +8,7 @@ const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.messag
 // ---------- MOBILE ----------
 await p.goto(BASE+'/');await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(1200);
 let s=await st(p);const tot0=Object.values(s.bal).reduce((a,b)=>a+b,0);
-ok('M1 дашборд заповнений (6 конвертів, чеки, посилки)',await p.locator('.envpill').count()===6&&await p.locator('#c-np').count()===1&&await p.locator('#c-cb').count()===1);
+ok('M1 дашборд заповнений (5 конвертів, чеки, посилки)',await p.locator('.envpill').count()===5&&await p.locator('#c-np').count()===1&&await p.locator('#c-cb').count()===1);
 ok('M2 крок «Відкриваємо дашборд» позначений',s.done.dash===true);
 // відсотки >100% блокують збереження
 await p.click('[data-tab=env]');await p.waitForTimeout(500);await p.click('#edit-pct');await p.waitForTimeout(500);
@@ -20,13 +20,13 @@ await p.click('.gchip[data-g="3"]');ok('M5 3 група: 5% + 1%',/6%/.test(awai
 await p.click('#pct-save');await p.waitForTimeout(600);s=await st(p);ok('M6 відсотки збережено',s.done.pct&&s.pct.buy===50);
 // платіж 2400 за дефолтних часток
 await p.click('#pay-env');await p.waitForTimeout(500);await p.fill('#pay-amt','2400');await p.click('#pay-sim');await p.waitForTimeout(900);
-let su=await st(p);ok('N1 платіж спершу лягає на рахунок як нерозподілений',su.unalloc===2400&&su.bal.ops===18880,`unalloc=${su.unalloc}`);
+let su=await st(p);ok('N1 платіж спершу лягає на рахунок як нерозподілений',su.unalloc===2400&&su.bal.exp===28480,`unalloc=${su.unalloc}`);
 ok('N2 на «Собі» попередження про розрив',/краще не виводити/.test(await p.textContent('#env-self')));
 await p.click('#split-now');await p.waitForTimeout(3600);
 s=await st(p);const tot1=Object.values(s.bal).reduce((a,b)=>a+b,0);
 ok('M7 сума по конвертах зросла рівно на 2400',tot1-tot0===2400,`${tot1-tot0}`);
-ok('M8 частки: податки 144, закупівля 1200, операційні 288, маркетинг 360, резерв 120, собі 288',
-  s.bal.tax-51426===144&&s.bal.buy-38400===1200&&s.bal.ops-18880===288&&s.bal.mkt-9600===360&&s.bal.res-12000===120&&s.bal.self-6800===288,JSON.stringify(s.bal));
+ok('M8 частки: податки 144, закупівля 1200, витрати 648, резерв 120, собі 288',
+  s.bal.tax-51426===144&&s.bal.buy-38400===1200&&s.bal.exp-28480===648&&s.bal.res-12000===120&&s.bal.self-6800===288,JSON.stringify(s.bal));
 ok('M9 платіж у списку операцій',s.tx[0].a===2400&&s.tx[0].src==='Імітація');
 // сума 0 → 1 ₴, не ламає
 await p.click('#pay-env');await p.waitForTimeout(500);await p.fill('#pay-amt','0');await p.click('#pay-sim');await p.waitForTimeout(800);await p.click('#split-now');await p.waitForTimeout(3000);s=await st(p);
@@ -38,9 +38,9 @@ ok('M10b при «Собі» = 0% платіж 1000 повністю розкл�
 await p.click('#edit-pct');await p.waitForTimeout(500);await p.fill('#p-res','5');await p.dispatchEvent('#p-res','input');await p.click('#pct-save');await p.waitForTimeout(600);s=await st(p);
 // радар
 await p.click('[data-tab=radar]');await p.waitForTimeout(700);await p.click('#run');await p.waitForTimeout(2300);
-const pushT=await p.textContent('.push .b');const need=+(await p.textContent('#c-alert .big')).replace(/[^\d]/g,'');
+const pushT=await p.textContent('.push');const need=+(await p.textContent('#c-alert .big')).replace(/[^\d]/g,'');
 ok('M11 пуш про розрив зʼявився',/Оренда складу/.test(pushT),pushT);
-ok('M12 дефіцит = 40 000 − (операційні + 2 дні надходжень)',need===Math.round(40000-(s.bal.ops+2*13000*0.12)),`${need}`);
+ok('M12 дефіцит = 40 000 − (витрати + 2 дні надходжень)',need===Math.round(40000-(s.bal.exp+2*13000*0.27)),`${need}`);
 await p.click('#cover');await p.waitForTimeout(500);const odAmt=+(await p.textContent('.panel .big')).replace(/[^\d]/g,'');
 ok('M13 овердрафт = дефіцит + погашення до дати платежу, округлено до сотні',odAmt>=need&&odAmt-need<2400&&odAmt%100===0,`дефіцит ${need}, овердрафт ${odAmt}`);
 await p.click('#nx');await p.waitForTimeout(2600);await p.click('#nx');await p.waitForTimeout(800);await p.click('#cl');await p.waitForTimeout(900);
@@ -59,13 +59,13 @@ await w.goto(BASE+'/web/');await w.waitForTimeout(1200);
 ok('W1 вебверсія бачить ті самі дані (овердрафт у списку)',/Овердрафт/.test(await w.textContent('.a-tx')));
 // скидання
 await w.click('#reset');await w.waitForTimeout(800);let ws=await st(w);
-ok('W2 скидання повертає стартові баланси',ws.bal.ops===18880&&ws.tx.length===4&&ws.done.dash===true);
+ok('W2 скидання повертає стартові баланси',ws.bal.exp===28480&&ws.tx.length===4&&ws.done.dash===true);
 await w.click('[data-page=env]');await w.waitForTimeout(700);
 await w.fill('#p-ops','20');await w.dispatchEvent('#p-ops','input');ok('W3 незбережені зміни підсвічені кнопкою',!(await w.isDisabled('#pct-save')));
 await w.click('#pct-save');await w.waitForTimeout(400);await w.fill('#pay-amt','3100');await w.click('#pay-sim');await w.waitForTimeout(800);await w.click('#split-now');await w.waitForTimeout(3600);ws=await st(w);
-ok('W4 платіж 3100 при операційних 20%: +620 в «Операційні»',ws.bal.ops-18880===620,`${ws.bal.ops-18880}`);
+ok('W4 платіж 3100 при операційних 20%: +1085 у «Витрати» (20+15 з 94)',ws.bal.exp-28480===1085,`${ws.bal.exp-28480}`);
 await w.click('[data-page=radar]');await w.waitForTimeout(700);await w.click('#run');await w.waitForTimeout(2300);
-const wneed=+(await w.textContent('#c-alert .big')).replace(/[^\d]/g,'');ok('W5 дефіцит на вебі рахується тією ж формулою',wneed===Math.round(40000-(ws.bal.ops+2*13000*0.20)),`${wneed}`);
+const wneed=+(await w.textContent('#c-alert .big')).replace(/[^\d]/g,'');ok('W5 дефіцит на вебі рахується тією ж формулою',wneed===Math.round(40000-(ws.bal.exp+2*13000*0.35)),`${wneed}`);
 await w.setViewportSize({width:360,height:800});await w.waitForTimeout(400);ok('W6 веб без горизонтальної прокрутки на 360px',await w.evaluate(()=>document.documentElement.scrollWidth)<=360);
 // HMAC підпис (той самий алгоритм, що на сторінці)
 const sig=await p.evaluate(()=>window.__hmacMD5('Jefe','what do ya want for nothing?'));   // тестовий вектор RFC 2104
