@@ -309,9 +309,15 @@ body.nopanel .presenter{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
 /* вхід і профіль */
-.auth{position:absolute;inset:0;z-index:90;background:var(--app);display:flex;align-items:center;justify-content:center;padding:24px 20px;animation:fade .25s both;overflow-y:auto}
+.auth{position:absolute;inset:0;z-index:90;background:var(--app);display:flex;align-items:flex-start;justify-content:center;padding:24px 20px;animation:fade .25s both;overflow-y:auto}
 .auth.closing{animation:fadeout .25s both}
-.authbox{width:min(380px,100%);display:flex;flex-direction:column;gap:14px}
+.authbox{width:min(380px,100%);display:flex;flex-direction:column;gap:14px;margin:auto 0}
+.authbox .obl{background:var(--surface);border-radius:14px;padding:4px 14px}
+.authbox .bankbox{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.regrow{padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}.regrow:first-child{border-top:0}
+.regrow .t,.regrow .s{display:block}.regrow .t{font-weight:500;color:var(--ink)}.regrow .s{font-size:12.5px;color:var(--muted)}
+.regrow .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;flex:none}
+button.chip{border:0;cursor:pointer}
 .authbox .logo{width:52px;height:52px;border-radius:14px}
 .authbox h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
 .authbox p{margin:0;color:var(--muted);font-size:14.5px}
@@ -339,7 +345,7 @@ body.nopanel .presenter{display:none}
 <div class="stage">
   <aside class="presenter" aria-label="Демо для журі">
     <div class="ph"><b>Демо для журі</b><button class="linkbtn" id="p-hide">Сховати</button></div>
-    <div class="pbox"><h2>Сценарій</h2><div class="jsteps" id="jsteps-side"></div><button class="linkbtn" data-reset>Скинути демо</button></div>
+    <div class="pbox"><h2>Сценарій</h2><div class="jsteps" id="jsteps-side"></div><button class="linkbtn" data-reset>Скинути демо</button><button class="linkbtn" data-first>Перший запуск</button><button class="linkbtn" data-stmt>Нова виписка з банку</button></div>
     <div class="pbox"><h2>Тестова оплата WayForPay</h2>
       <div class="card-test">Картка <b>4111 1111 1111 1111</b>, будь-який термін і CVV. Гроші не списуються.</div></div>
     <div class="pbox"><h2>Інші версії</h2><a class="linkbtn" href="web/">Вебверсія для комп'ютера</a>
@@ -388,8 +394,8 @@ const inDays=i=>i===0?'сьогодні':i===1?'завтра':`через ${i} $
 /* «Витрати» = операційні (оренда, зарплата, тарифи) + маркетинг. Один баланс, частки задаються окремо */
 const ENVS=[
   {k:'tax', n:'Податки',          c:'var(--c-tax)', l:'П', get goal(){return S.group==='12'?TAX12+ESV:TAX_Q3+3*ESV}, get gl(){return S.group==='12'?'щомісяця податок, ВЗ і ЄСВ':'до 19.11 · податок за квартал і ЄСВ'}},
-  {k:'buy', n:'Закупівля',        c:'var(--c-buy)', l:'З', goal:52000, gl:'партія постачальнику через 13 днів'},
-  {k:'exp', n:'Витрати',          c:'var(--c-exp)', l:'В', goal:40000, get gl(){return 'оренда 40 000 ₴ '+inDays(payDay(0))}},
+  {k:'buy', n:'Закупівля',        c:'var(--c-buy)', l:'З', goal:52000, get gl(){return isOff('buy')?'закупівля товару':'партія постачальнику через 13 днів'}},
+  {k:'exp', n:'Витрати',          c:'var(--c-exp)', l:'В', get goal(){return amtOf(OPS_PAYS[0])}, get gl(){return isOff('o0')?'регулярні платежі з виписки':'оренда '+fmt(amtOf(OPS_PAYS[0]))+' '+inDays(payDay(0))}},
   {k:'res', n:'Резерв',           c:'var(--c-res)', l:'Р', goal:60000, gl:'подушка на місяць'},
   {k:'self',n:'Собі',             c:'var(--c-self)',l:'С', goal:0,     gl:'вільні гроші'},
 ];
@@ -397,6 +403,14 @@ const ESV=1902.34, TAX_Q3=70200, TAX12=2594.10;   // ЄСВ за себе на �
 const SALES_DAY=13000;                       // середні продажі за день (8 тижнів історії)
 const OPS_PAYS=[{id:'o0',d:2,t:'Оренда складу',a:40000},{id:'meta',d:10,t:'Реклама Meta',a:18000},{id:'o1',d:14,t:'Зарплата помічниці',a:15000},{id:'o2',d:19,t:'Тариф Prom.ua',a:4500}];   // платежі з «Витрат»
 const payDay=(j,mv)=>{mv=mv||{};return mv[j]!=null?mv[j]:S.moved&&S.moved[j]!=null?S.moved[j]:OPS_PAYS[j].d};   // платіж можна перенести на іншу дату
+/* регулярні платежі «знайдено у виписці»: Олена відповідає так/ні, нову суму підтверджує (S.off, S.amt; порожні = як у DEF) */
+const amtOf=p=>(S.amt&&S.amt[p.id])||p.a;
+const isOff=id=>!!(S.off&&S.off[id]);
+const isConn=n=>!(S.conn&&S.conn[n]===false);
+const REG=[...OPS_PAYS,{id:'buy',t:'Партія постачальнику',a:52000}];
+const REG_S={o0:'щомісяця',meta:'з картки ФОП',o1:'щомісяця',o2:'щомісяця',buy:'фабрика, регулярно'};
+const regHTML=off=>REG.map(p=>`<label class="tgl regrow"><span><span class="t">${p.t}</span><span class="s">${fmt(amtOf(p))} · ${REG_S[p.id]}</span></span><input type="checkbox" data-reg="${p.id}"${off[p.id]?'':' checked'}><span class="sw"></span></label>`).join('');
+const bindReg=(root,off,after)=>root.querySelectorAll('[data-reg]').forEach(i=>i.onchange=()=>{if(i.checked)delete off[i.dataset.reg];else off[i.dataset.reg]=true;if(after)after(i)});
 const OD_RATE=.24, OD_SHARE=.30;             // умовні умови овердрафту
 
 const DEF={
@@ -426,7 +440,7 @@ const expSplit=v=>{const o=S.pct.ops,m=S.pct.mkt,t=o+m||1;return{ops:v*o/t,mkt:v
 /* прогноз конверта «Витрати»: щодня приходить його частка продажів, виходять оренда, реклама, ЗП, тарифи
    x.add: докласти гроші зараз; x.debt: додати борг; x.move: перенести платіж; x.now: оплатити платіж сьогодні */
 function forecast(x){x=x||{};
-  const PL=OPS_PAYS.map((p,j)=>({...p,j,d:x.now===p.id?0:payDay(j,x.move)})).filter(p=>!(S.paid&&S.paid[p.id]==='paid'));   // сплачене із застосунку вже списано з конверта
+  const PL=OPS_PAYS.map((p,j)=>({...p,j,a:amtOf(p),d:x.now===p.id?0:payDay(j,x.move)})).filter(p=>!isOff(p.id)&&!(S.paid&&S.paid[p.id]==='paid'));   // сплачене із застосунку вже списано з конверта
   const tp=taxPct()/100,k=expPct()/100/(1-tp);let debt=(S.debt||0)+(x.debt||0);const ua=S.unalloc||0,pend=ua-taxOf(ua)-repayOf(ua);debt-=repayOf(ua);
   let b=S.bal.exp+pend*k+(x.add||0);const days=[];let inflow0=null;
   for(let i=0;i<30;i++){const pays=PL.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
@@ -479,7 +493,7 @@ function setTab(t,anim=true){tab=t;document.querySelectorAll('[data-tab]').forEa
 function render(anim){
   const html={home:homeHTML,env:envHTML,radar:radarHTML,ops:opsHTML}[tab]();
   $('scr').innerHTML=`<div class="view${anim?' enter':''}">${html}</div>`;
-  ({home:homeAfter,env:envAfter,radar:radarAfter,ops:()=>{}})[tab]();
+  ({home:homeAfter,env:envAfter,radar:radarAfter,ops:opsAfter})[tab]();
   $('badge').hidden=!(S.alert||S.notes.some(n=>!n.read));paintSteps();save();
 }
 
@@ -507,7 +521,7 @@ function homeHTML(){
     <div class="rows">${ENVS.map(e=>envRow(e,gap)).join('')}</div></section>
   <section class="blk" id="c-spend"><div class="bh">Можна вивести собі${gap?'<span class="chip crit">є розрив</span>':'<span class="chip">безпечно</span>'}</div>
     <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="big num">${fmtn(sp.safe)}<small>₴</small></div><button class="btn sm ghost" id="spend-open">Вивести</button></div>
-    ${gap?`<div class="small">У «Собі» ${fmt(S.bal.self)}, але ${dm(gap.i)} не вистачить на оренду</div>`:''}</section>
+    ${gap?`<div class="small">У «Собі» ${fmt(S.bal.self)}, але ${dm(gap.i)} не вистачить: ${gap.pay.t.toLowerCase()}</div>`:''}</section>
   <div class="tiles">
     <div class="tile" id="c-np"><div class="h">Нова пошта${ic('box')}</div><div class="v num">7<small>у дорозі</small></div><div class="s">3 післяплати на 8 900 ₴</div></div>
     <div class="tile" id="c-cb"><div class="h">Каса Checkbox${ic('receipt')}</div><div class="v num">14<small>чеків</small></div><div class="s">сьогодні 21 380 ₴</div></div>
@@ -615,8 +629,13 @@ function opsHTML(){
   const groups={};S.tx.forEach((x,j)=>{const k=x.day===1||/^вчора/.test(x.ago)?'Вчора':'Сьогодні';(groups[k]=groups[k]||[]).push([x,j])});
   return `<section class="blk"><div class="bh">Усі надходження<span class="sub">${S.tx.length}</span></div>
     <div class="list">${Object.entries(groups).map(([k,a])=>`<div class="dayh">${k}</div>${a.map(([x,j])=>txRow(x,j)).join('')}`).join('')}</div></section>
-  <section class="blk"><div class="bh">Підключені сервіси</div><div class="list">${INTEGR.map(([n,t,s])=>`<div class="li">${srcIc(n)}<div><div class="t">${srcName(n)}</div><div class="s">${t}</div></div><span class="chip">${s}</span></div>`).join('')}</div></section>`;
+  <section class="blk"><div class="bh">Підключені сервіси</div><div class="list">${INTEGR.map(([n,t])=>`<div class="li">${srcIc(n)}<div><div class="t">${srcName(n)}</div><div class="s">${t}</div></div>${n==='Raiffeisen'?'<span class="chip">підключено</span>':`<button class="chip${isConn(n)?'':' grey'}" data-conn="${n}">${isConn(n)?'підключено':'не підключено'}</button>`}</div>`).join('')}</div></section>
+  <section class="blk" id="c-reg"><div class="bh">Регулярні платежі з виписки</div><div class="small">Знайдено автоматично. Вимкніть, якщо платіж був разовий</div>
+    <div>${regHTML(S.off||{})}</div>${S.amt&&S.amt.o0===45000?'<button class="linkbtn" id="reg-back">Повернути оренду 40 000 ₴</button>':''}</section>`;
 }
+function opsAfter(){S.off=S.off||{};bindReg($('c-reg'),S.off,i=>{save();toast(i.checked?'Враховуємо в прогнозі':'Більше не враховуємо')});
+  $('scr').querySelectorAll('[data-conn]').forEach(b=>b.onclick=()=>{const n=b.dataset.conn;S.conn=S.conn||{};if(isConn(n))S.conn[n]=false;else delete S.conn[n];render(false)});
+  const rb=$('reg-back');if(rb)rb.onclick=()=>{S.amt.o0=40000;render(false);toast('Оренда: 40 000 ₴')}}
 
 /* ======================================================================
    ШТОРКИ
@@ -807,17 +826,17 @@ function pendingAction(){
   if(odLeft&&forecast().gap)return{k:'od',title:'Овердрафт не оформлено',body:'Ви почали, але не підписали. Розрив досі відкритий',go:()=>{setTab('radar');setTimeout(runRadar,300)}};
   if(S.alert&&forecast().gap)return{k:'gap',title:'Розрив не закрито',body:'Оберіть: овердрафт, Резерв або перенести платіж',go:()=>{setTab('radar');setTimeout(runRadar,300)}};
   return null}
-function remindNow(){if(auto)return;const a=pendingAction();if(!a||reminded[a.k]||sheetOpen())return;reminded[a.k]=true;addNote('remind',a.title,a.body);save();banner(a.title,a.body,a.go);$('badge').hidden=false}
+function remindNow(){if(auto||authEl)return;const a=pendingAction();if(!a||reminded[a.k]||sheetOpen())return;reminded[a.k]=true;addNote('remind',a.title,a.body);save();banner(a.title,a.body,a.go);$('badge').hidden=false}
 function poke(){clearTimeout(idleT);idleT=setTimeout(remindNow,30000)}
 ['pointerdown','keydown','scroll'].forEach(ev=>addEventListener(ev,poke,{passive:true,capture:true}));poke();
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){const a=pendingAction();leftWith=a;clearTimeout(hiddenT);if(a&&!auto)hiddenT=setTimeout(()=>{if(!reminded[a.k]){reminded[a.k]=true;addNote('remind',a.title,a.body);save();sysNotify(a.title,a.body)}},5000)}
-  else{clearTimeout(hiddenT);const a=pendingAction();if(a&&leftWith&&a.k===leftWith.k&&!reminded[a.k]&&!auto&&!sheetOpen()){banner(a.title,a.body,a.go);reminded[a.k]=true}leftWith=null;poke()}});
+  if(document.hidden){const a=pendingAction();leftWith=a;clearTimeout(hiddenT);if(a&&!auto&&!authEl)hiddenT=setTimeout(()=>{if(!reminded[a.k]){reminded[a.k]=true;addNote('remind',a.title,a.body);save();sysNotify(a.title,a.body)}},5000)}
+  else{clearTimeout(hiddenT);const a=pendingAction();if(a&&leftWith&&a.k===leftWith.k&&!reminded[a.k]&&!auto&&!authEl&&!sheetOpen()){banner(a.title,a.body,a.go);reminded[a.k]=true}leftWith=null;poke()}});
 function onSheetClosed(){if(od.step>=1&&od.step<4&&!od.finished)odLeft=true}
 
 /* ---------- календар платежів: оплата прямо з застосунку (імітація) ---------- */
 const PAYEE={o0:'Орендодавець складу',o1:'Помічниця, зарплата',o2:'Prom.ua',meta:'Meta, рекламний кабінет',buy:'Фабрика-постачальник',tax:'ДПС, єдиний податок і військовий збір'};
-const CAL=()=>[...OPS_PAYS.map((p,j)=>({id:p.id,j,e:'exp',t:p.t,a:p.a})),{id:'buy',i:13,e:'buy',t:'Партія постачальнику',a:52000},{id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Податок за III квартал',a:70200}].map(p=>({...p,i:p.j!=null?payDay(p.j):p.i})).sort((x,y)=>x.i-y.i);
+const CAL=()=>[...OPS_PAYS.map((p,j)=>({id:p.id,j,e:'exp',t:p.t,a:amtOf(p)})),{id:'buy',i:13,e:'buy',t:'Партія постачальнику',a:52000},{id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Податок за III квартал',a:70200}].filter(p=>!isOff(p.id)).map(p=>({...p,i:p.j!=null?payDay(p.j):p.i})).sort((x,y)=>x.i-y.i);
 const envName=k=>ENVS.find(e=>e.k===k).n;
 const billState=id=>S.paid&&S.paid[id];
 function calHTML(f){f=f||forecast();return `<div class="card" id="c-cal"><div class="ct">Платежі<span class="sub">30 днів</span></div><div class="list">${CAL().map(p=>{const st=billState(p.id),low=p.j!=null&&st!=='paid'?f.days[p.i].low:null;
@@ -931,7 +950,7 @@ function stepsHTML(){const nx=DEMO.findIndex(x=>!S.done[x.k]);return modeHTML()+
 function paintSteps(){const el=$('jsteps-side');if(el){el.innerHTML=stepsHTML();bindSteps(el)}const sh=$('jsteps-sheet');if(sh){sh.innerHTML=stepsHTML();bindSteps(sh)}}
 function bindSteps(el){
   el.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{const a=b.dataset.mode==='auto';if(a===auto)return;if(b.closest('.panel'))closeSheet();setMode(a)});
-  el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{if(auto)return;const fromSheet=!!b.closest('.panel');if(fromSheet)closeSheet();setTimeout(()=>runStep(+b.dataset.j),fromSheet?250:0)})}
+  el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{if(auto||authEl)return;const fromSheet=!!b.closest('.panel');if(fromSheet)closeSheet();setTimeout(()=>runStep(+b.dataset.j),fromSheet?250:0)})}
 function runStep(i){
   clearTimers();hideCursor();di=i;const s=DEMO[i],sb=$('subs');
   if(auto){sb.hidden=false;$('subs-k').textContent=`${i+1} / ${DEMO.length}`;$('subs-t').textContent=s.c;
@@ -941,10 +960,22 @@ function runStep(i){
   s.a();paintSteps();
 }
 function setMode(a){auto=a;clearTimers();hideCursor();if(a){closeSheet();hidePush();restartDemo()}else{$('subs').hidden=true;paintSteps()}}
-function resetDemo(){S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));S.auth=true;paintUser();for(const k in lastNum)delete lastNum[k];for(const k in reminded)delete reminded[k];od={};odLeft=false;save();closeSheet();hidePush();setTab('home');toast('Демо скинуто')}
+function resetDemo(){S=JSON.parse(JSON.stringify(DEF));S.done.dash=true;S.profile=JSON.parse(JSON.stringify(DEF_PROFILE));S.auth=true;paintUser();for(const k in lastNum)delete lastNum[k];for(const k in reminded)delete reminded[k];od={};odLeft=false;obT.forEach(clearTimeout);obT=[];ob=null;closeAuth();save();closeSheet();hidePush();setTab('home');toast('Демо скинуто')}
 function restartDemo(){clearTimers();hideCursor();resetDemo();di=-1;if(auto)later(900,()=>runStep(0));else{$('subs').hidden=true;paintSteps()}}
-$('demo-btn').onclick=()=>{openSheet(`<h3>Сценарій демо</h3><div class="jsteps" id="jsteps-sheet"></div><button class="btn ghost" data-reset>Скинути демо</button>`,'Сценарій демо');paintSteps();bindReset()};
-function bindReset(){document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=restartDemo)}
+/* онбординг для пітчу: з порожнього входу до головної. Стан входу не зберігаємо, тож після перезавантаження відкриється дашборд */
+function firstRun(){if(auto)setMode(false);resetDemo();ob={off:{},conn:{}};openAuth('phone')}
+/* нова виписка (імітація): знайоме застосунок вирішує сам, у незнайомому питає так/ні */
+function newStatement(){if(authEl)return;if(auto)setMode(false);let any=false;
+  if(!isOff('o2')&&billState('o2')!=='paid'){const a=amtOf(OPS_PAYS[3]);S.paid=S.paid||{};S.paid.o2='paid';S.bal.exp-=a;any=true;
+    notify('bill',`Врахували з виписки: Prom.ua ${fmt(a)}`,'Оплачено карткою поза застосунком. Списали з «Витрат», прогноз оновлено',()=>{setTab('radar');setTimeout(()=>flash('c-cal'),300)})}
+  render(false);
+  if(!(S.amt&&S.amt.o0!=null)&&!isOff('o0')&&billState('o0')!=='paid'){any=true;
+    openSheet(`<div class="lbl">Нове у виписці</div><h3>Оренда складу: 45 000 ₴?</h3><div class="small">Остання оплата оренди у виписці 45 000 ₴, ми рахували 40 000 ₴. Рахувати 45 000 ₴ надалі?</div>
+      <div class="btncol"><button class="btn" id="st-yes">Так, 45 000 ₴</button><button class="btn ghost" id="st-no">Ні, лишити 40 000 ₴</button></div><p class="note">Змінити можна на вкладці «Операції».</p>`,'Нове у виписці');
+    const ans=v=>{S.amt=S.amt||{};S.amt.o0=v;save();closeSheet();render(false);toast(v===45000?'Оренда: 45 000 ₴':'Лишили 40 000 ₴')};$('st-yes').onclick=()=>ans(45000);$('st-no').onclick=()=>ans(40000)}
+  if(!any)toast('Нових записів у виписці немає')}
+$('demo-btn').onclick=()=>{openSheet(`<h3>Сценарій демо</h3><div class="jsteps" id="jsteps-sheet"></div><div class="btncol"><button class="btn ghost" data-reset>Скинути демо</button><button class="btn ghost" data-first>Перший запуск</button><button class="btn ghost" data-stmt>Нова виписка з банку</button></div>`,'Сценарій демо');paintSteps();bindReset()};
+function bindReset(){document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=restartDemo);document.querySelectorAll('[data-first]').forEach(b=>b.onclick=firstRun);document.querySelectorAll('[data-stmt]').forEach(b=>b.onclick=newStatement)}
 bindReset();
 document.addEventListener('keydown',e=>{if(e.key!==' '&&e.key!=='ArrowRight')return;if(!auto||e.target.closest('input,select,textarea,button,[contenteditable]'))return;   // у ручному режимі пробіл нічого не запускає
   e.preventDefault();const n=Math.min(DEMO.length-1,di+1);if(auto){setMode(false)}runStep(n)});
@@ -965,34 +996,77 @@ const GROUPS=[['12','1–2 група'],['3','3 група'],['3v','3 група
 function paintUser(){const p=S.profile||DEF_PROFILE;document.querySelectorAll('[data-hello]').forEach(el=>el.textContent=p.name+(p.last?' '+p.last[0]+'.':''));
   document.querySelectorAll('[data-shop]').forEach(el=>el.textContent='ФОП · '+(p.shop||''));
   document.querySelectorAll('[data-ini]').forEach(el=>el.textContent=initials(p))}
-let authEl=null;
+let authEl=null,ob=null,obT=[];   // ob: онбординг «Перший запуск» триває (відповіді off/conn до кінця тримаємо тут)
 function openAuth(step,edit){
   if(!authEl){authEl=document.createElement('div');authEl.className='auth';$('app').appendChild(authEl)}
   authEl.classList.remove('closing');const P=S.profile||{};
-  const logo=`<img class="logo" src="icons/icon-192.png" alt="">`;
+  const logo=(ob?obBar({phone:1,code:2,profile:5}[step]):'')+`<img class="logo" src="icons/icon-192.png" alt="">`;
   if(step==='phone')authEl.innerHTML=`<div class="authbox">${logo}<h2>Вхід</h2><p>Номер, на який відкрито рахунок ФОП.</p>
     <label class="f" for="a-phone">Телефон<input id="a-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 000 00 00" value="${prettyPhone(P.phone)}"></label>
     <button class="btn" id="a-next" disabled>Отримати код</button></div>`;
   if(step==='code')authEl.innerHTML=`<div class="authbox">${logo}<button class="back" id="a-back">${prettyPhone(authEl.dataset.phone)} · змінити</button><h2>Код з SMS</h2><p>Надіслали 4 цифри.</p>
     <label class="f" for="a-code">Код<input id="a-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="4" placeholder="····"></label></div>`;
-  if(step==='profile')authEl.innerHTML=`<div class="authbox">${logo}<h2>${edit?'Ваші дані':'Про ваш бізнес'}</h2><p>Група ФОП потрібна, щоб податок рахувався сам.</p>
-    <div class="two"><label class="f" for="a-name">Ім’я<input id="a-name" autocomplete="given-name" value="${edit?(P.name||''):''}"></label><label class="f" for="a-last">Прізвище<input id="a-last" autocomplete="family-name" value="${edit?(P.last||''):''}"></label></div>
-    <label class="f" for="a-shop">Магазин<input id="a-shop" value="${edit?(P.shop||''):''}"></label>
+  const pre=edit||ob;   // в онбордингу дані вже підтягнуто з банку, Олена лише перевіряє
+  if(step==='profile')authEl.innerHTML=`<div class="authbox">${logo}<h2>${edit?'Ваші дані':'Про ваш бізнес'}</h2><p>${ob?'Дані з банку, перевірте. ':''}Група ФОП потрібна, щоб податок рахувався сам.</p>
+    <div class="two"><label class="f" for="a-name">Ім’я<input id="a-name" autocomplete="given-name" value="${pre?(P.name||''):''}"></label><label class="f" for="a-last">Прізвище<input id="a-last" autocomplete="family-name" value="${pre?(P.last||''):''}"></label></div>
+    <label class="f" for="a-shop">Магазин<input id="a-shop" value="${pre?(P.shop||''):''}"></label>
     <div class="f">Група ФОП<div class="gchips" id="a-group">${GROUPS.map(([v,n])=>`<button class="gchip" data-g="${v}" aria-pressed="${S.group===v}">${n}</button>`).join('')}</div></div>
     <button class="btn" id="a-save" disabled>${edit?'Зберегти':'Далі'}</button>${edit?'<button class="btn ghost" id="a-cancel">Скасувати</button>':''}</div>`;
   const $a=id=>authEl.querySelector('#'+id);
   if(step==='phone'){const i=$a('a-phone'),b=$a('a-next');const chk=()=>{b.disabled=digits(i.value).length<10};i.oninput=chk;chk();
     b.onclick=()=>{let d=digits(i.value);if(d.length===10)d='38'+d;authEl.dataset.phone=d;openAuth('code')};i.onkeydown=e=>{if(e.key==='Enter'&&!b.disabled)b.click()};setTimeout(()=>i.focus(),50)}
   if(step==='code'){const i=$a('a-code');$a('a-back').onclick=()=>openAuth('phone');setTimeout(()=>i.focus(),50);
-    i.oninput=()=>{i.value=digits(i.value).slice(0,4);if(i.value.length===4){const d=authEl.dataset.phone;if(S.profile&&digits(S.profile.phone)===d&&S.profile.name){S.auth=true;finishAuth()}else{S.profile={phone:d,email:''};openAuth('profile')}}}}
+    i.oninput=()=>{i.value=digits(i.value).slice(0,4);if(i.value.length===4){const d=authEl.dataset.phone;if(ob){S.profile=Object.assign({},DEF_PROFILE,{phone:d});openOnb('bank');return}if(S.profile&&digits(S.profile.phone)===d&&S.profile.name){S.auth=true;finishAuth()}else{S.profile={phone:d,email:''};openAuth('profile')}}}}
   if(step==='profile'){let g=S.group;const sv=$a('a-save');const chk=()=>{sv.disabled=!($a('a-name').value.trim()&&$a('a-shop').value.trim())};['a-name','a-last','a-shop'].forEach(id=>$a(id).oninput=chk);chk();
     authEl.querySelectorAll('.gchip').forEach(b=>b.onclick=()=>{g=b.dataset.g;authEl.querySelectorAll('.gchip').forEach(x=>x.setAttribute('aria-pressed',x===b))});
-    sv.onclick=()=>{S.profile=Object.assign({},S.profile,{name:$a('a-name').value.trim(),last:$a('a-last').value.trim(),shop:$a('a-shop').value.trim()});S.group=g;S.auth=true;finishAuth()};
+    sv.onclick=()=>{S.profile=Object.assign({},S.profile,{name:$a('a-name').value.trim(),last:$a('a-last').value.trim(),shop:$a('a-shop').value.trim()});S.group=g;if(ob){paintUser();openOnb('scan');return}S.auth=true;finishAuth()};
     const c=$a('a-cancel');if(c)c.onclick=closeAuth;setTimeout(()=>$a('a-name').focus(),50)}
 }
 function closeAuth(){if(!authEl)return;const el=authEl;authEl=null;el.classList.add('closing');setTimeout(()=>el.remove(),250)}
 function finishAuth(){save();paintUser();closeAuth();render(false)}
 function logout(){S.auth=false;save();closeSheet();hidePush();openAuth('phone')}
+/* онбординг: банк → дані → виписка → відсотки → сервіси → сповіщення. Усе в імітації, сервера немає */
+const obBar=n=>`<div class="stp">${[1,2,3,4,5,6,7,8,9].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;
+const OB_CONN=[['WayForPay','еквайринг'],['NovaPay','еквайринг'],['LiqPay','еквайринг'],['Checkbox','каса'],['Нова пошта','післяплата']];
+function openOnb(step){if(!ob||!authEl)return;   // онбординг скасовано: скинули демо
+  let b='';
+  if(step==='bank')b=`<h2>Підключіть рахунок ФОП</h2><p>Тоді застосунок сам бачитиме надходження і платежі. Вводити їх вручну не треба.</p>
+    <div class="obl"><div class="kv" style="padding:12px 0"><span>Читаємо</span><span>виписку, баланс, реквізити</span><span>Не бачимо</span><span>пароль від банку</span><span>Платежі</span><span>лише з вашим підтвердженням</span></div></div>
+    <button class="btn" id="o-next">Підключити Raiffeisen</button>`;
+  if(step==='consent')b=`<div class="bankbox"><div class="li" style="padding:0">${srcIc('Raiffeisen')}<div><div class="t">Raiffeisen Business</div><div class="s">запит на доступ</div></div><span></span></div>
+    <h3 style="margin:0">«Фінансист» просить доступ до рахунку ФОП</h3>
+    <div class="kv"><span>Дозволи</span><span>читати виписку й баланс</span><span>Рахунок</span><span>ФОП Коваль О., гривня</span><span>Термін</span><span>180 днів, можна відкликати</span></div>
+    <div class="btncol"><button class="btn" id="o-next">Дозволити</button><button class="btn ghost" id="o-back">Скасувати</button></div></div>
+    <p class="note">Імітація: доступ до виписки рахунку ФОП через API банку ще не підтверджено. Інший шлях: <button class="linkbtn" id="o-file">завантажити файл виписки</button></p>`;
+  if(step==='scan')b=`<h2>Аналізуємо виписку</h2><p>Останні 8 тижнів: надходження, регулярні платежі, податки.</p>
+    <div class="checks" id="o-checks"><div><span class="c"></span>Надходження і середні продажі</div><div><span class="c"></span>Повторювані платежі</div><div><span class="c"></span>Податки і ЄСВ</div></div>`;
+  if(step==='found')b=`<h2>Ось що ми знайшли</h2><p>Це регулярні платежі? Вимкніть, якщо платіж був разовий.</p>
+    <div class="obl">${regHTML(ob.off)}</div>
+    <div class="obl"><div class="kv" style="padding:12px 0"><span>Продажі</span><span>≈ ${fmt(SALES_DAY)} на день</span><span>Податок</span><span>${S.group==='12'?'фіксований, щомісяця':taxPct()+'% з надходжень'}, рахуємо самі</span><span>ЄСВ</span><span>${ESV.toLocaleString('uk-UA')} ₴ на місяць</span></div></div>
+    <p class="note">Змінити можна будь-коли на вкладці «Операції».</p><button class="btn" id="o-next">Усе вірно</button>`;
+  if(step==='pct'){const parts=ENVS.map(e=>[e,pctOf(e.k)]).filter(x=>x[1]>0);b=`<h2>Стартові відсотки</h2><p>Так ділитиметься кожне надходження. Змінити можна на вкладці «Конверти».</p>
+    <div class="obl" style="padding:14px;display:flex;flex-direction:column;gap:10px"><div class="split">${parts.map(([e,p])=>`<i style="flex-grow:${p};background:${e.c}"></i>`).join('')}</div><div class="legend">${parts.map(([e,p])=>`<span><i style="background:${e.c}"></i>${e.n} ${p}%</span>`).join('')}</div></div>
+    <div class="btncol"><button class="btn" id="o-next">Прийняти</button><button class="btn ghost" id="o-skip">Змінити пізніше</button></div>`}
+  if(step==='conn')b=`<h2>Каси й еквайринг</h2><p>За бажанням. Тоді оплати видно одразу, ще до зарахування на рахунок.</p>
+    <div class="obl">${OB_CONN.map(([n,t])=>`<label class="tgl regrow"><span style="display:flex;gap:10px;align-items:center">${srcIc(n)}<span><span class="t">${srcName(n)}</span><span class="s">${t} · знайшли у виписці</span></span></span><input type="checkbox" data-conn="${n}"${ob.conn[n]===false?'':' checked'}><span class="sw"></span></label>`).join('')}</div>
+    <div class="btncol"><button class="btn" id="o-next">Підключити</button><button class="btn ghost" id="o-skip">Пропустити</button></div>`;
+  if(step==='push')b=`<h2>Сповіщення</h2><p>Попередимо про касовий розрив і нагадаємо про платежі. Стежити самій не треба.</p>
+    ${'Notification' in window?`<div class="obl"><label class="tgl" style="padding:12px 0"><span>Сповіщення на телефон</span><input type="checkbox" id="o-push"${S.sysPush?' checked':''}><span class="sw"></span></label></div>`:''}
+    <button class="btn" id="o-next">Готово</button>`;
+  authEl.innerHTML=`<div class="authbox">${obBar({bank:3,consent:4,scan:6,found:6,pct:7,conn:8,push:9}[step])}${b}</div>`;authEl.scrollTop=0;
+  const $a=id=>authEl.querySelector('#'+id),nx=$a('o-next'),sk=$a('o-skip');
+  const NEXT={bank:'consent',found:'pct',pct:'conn',conn:'push'};
+  if(nx)nx.onclick=()=>step==='push'?finishOnb():step==='consent'?openAuth('profile'):openOnb(NEXT[step]);
+  if(step==='consent'){$a('o-back').onclick=()=>openOnb('bank');$a('o-file').onclick=()=>nx.click()}
+  if(step==='scan'){[...authEl.querySelectorAll('#o-checks>div')].forEach((r,j)=>{obT.push(setTimeout(()=>r.classList.add('busy'),j*550));obT.push(setTimeout(()=>{r.classList.remove('busy');r.classList.add('done');r.querySelector('.c').innerHTML='<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-6"/></svg>'},j*550+480))});
+    obT.push(setTimeout(()=>openOnb('found'),RM?10:2000))}
+  if(step==='found')bindReg(authEl,ob.off);
+  if(step==='pct')sk.onclick=()=>nx.click();
+  if(step==='conn'){authEl.querySelectorAll('[data-conn]').forEach(i=>i.onchange=()=>{if(i.checked)delete ob.conn[i.dataset.conn];else ob.conn[i.dataset.conn]=false});sk.onclick=()=>{OB_CONN.forEach(([n])=>ob.conn[n]=false);openOnb('push')}}
+  if(step==='push'){const p=$a('o-push');if(p)p.onchange=()=>askPush(p)}
+}
+function finishOnb(){S.off=ob.off;S.conn=ob.conn;ob=null;S.auth=true;finishAuth();setTab('home');setTimeout(()=>toast('Готово: дані з виписки підтягнуто'),300)}
+async function askPush(pp){if(pp.checked){let r=Notification.permission;if(r==='default'){try{r=await Notification.requestPermission()}catch(e){}}S.sysPush=r==='granted';pp.checked=S.sysPush;save();toast(S.sysPush?'Сповіщення увімкнено':'Браузер не дозволив сповіщення')}else{S.sysPush=false;save()}}
 function openProfile(){const p=S.profile||{};const g=(GROUPS.find(x=>x[0]===S.group)||['','—'])[1];
   const canPush='Notification' in window;
   openSheet(`<div class="profhead"><span class="avatar">${initials(p)}</span><div><h3 style="margin:0">${p.name||''} ${p.last||''}</h3><div class="small">ФОП · ${p.shop||''}</div></div></div>
@@ -1000,7 +1074,7 @@ function openProfile(){const p=S.profile||{};const g=(GROUPS.find(x=>x[0]===S.gr
    ${canPush?`<label class="tgl profrow" style="border-top:1px solid var(--line)"><span style="color:var(--ink)">Сповіщення на телефон</span><input type="checkbox" id="pf-push"${S.sysPush&&Notification.permission==='granted'?' checked':''}><span class="sw"></span></label>`:''}</div>
    <div class="btncol"><button class="btn ghost" id="pf-edit">Змінити дані</button><button class="btn ghost" id="pf-out" style="color:var(--crit)">Вийти</button></div>`,'Профіль');
   $('pf-edit').onclick=()=>{closeSheet();hidePush();openAuth('profile',true)};$('pf-out').onclick=logout;
-  const pp=$('pf-push');if(pp)pp.onchange=async()=>{if(pp.checked){let r=Notification.permission;if(r==='default'){try{r=await Notification.requestPermission()}catch(e){}}S.sysPush=r==='granted';pp.checked=S.sysPush;save();toast(S.sysPush?'Сповіщення увімкнено':'Браузер не дозволив сповіщення')}else{S.sysPush=false;save()}}}
+  const pp=$('pf-push');if(pp)pp.onchange=()=>askPush(pp)}
 document.querySelectorAll('[data-avatar]').forEach(b=>b.onclick=openProfile);
 paintUser();
 
