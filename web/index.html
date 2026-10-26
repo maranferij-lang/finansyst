@@ -674,7 +674,9 @@ function radarHTML(){
      <div class="chartbox">${chartSVG(f)}</div><div class="small">Щодня приходить ≈ ${fmt(f.inflow)} з продажів (${expPct()}% від ${fmt(SALES_DAY)})</div></div>
    <div class="col"><div id="radarbox">${f.gap?`<div class="card" id="c-radar"><div class="ct">Перевірка платежів<span class="sub">30 днів</span></div><div class="small">Звіримо платежі з очікуваними надходженнями</div><button class="btn" id="run">${ic('radar')}Перевірити</button></div>`
       :`<div class="card" id="c-radar"><div class="ct">Перевірка платежів<span class="chip">усе покрито</span></div><div class="small">${S.od&&!S.debt?'Овердрафт погашено. ':''}На 30 днів розривів немає</div></div>`}</div>${odBoxHTML()}
-    ${calHTML(f)}</div></div>`;
+    ${calHTML(f)}</div>
+   <div class="card" id="c-reg" style="grid-column:1/-1"><div class="ct">Регулярні платежі з виписки</div><div class="small">Знайдено автоматично. Вимкніть, якщо платіж був разовий</div>
+      <div>${regHTML(S.off||{})}</div>${S.amt&&S.amt.o0===45000?'<button class="linkbtn" id="reg-back" style="align-self:flex-start">Повернути оренду 40 000 ₴</button>':''}</div></div>`;
 }
 function chartSVG(f){
   const W=680,H=290,pl=46,pr=12,pt=18,pb=30,N=30,dx=(W-pl-pr)/N;
@@ -692,7 +694,9 @@ function chartSVG(f){
    <path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2" clip-path="url(#cp)" pathLength="1" class="draw"/>
    <path d="${d}" fill="none" stroke="var(--crit)" stroke-width="2" clip-path="url(#cn)" pathLength="1" class="draw"/>${marks}${gm}${xt}</svg>`;
 }
-function radarAfter(){const r=$('run');if(r)r.onclick=runRadar;odBoxAfter();bindBills()}
+function radarAfter(){const r=$('run');if(r)r.onclick=runRadar;odBoxAfter();bindBills();
+  S.off=S.off||{};bindReg($('c-reg'),S.off,i=>{save();render(false);toast(i.checked?'Враховуємо в прогнозі':'Більше не враховуємо')});
+  const rb=$('reg-back');if(rb)rb.onclick=()=>{S.amt.o0=40000;render(false);toast('Оренда: 40 000 ₴')}}
 /* ---------- овердрафт: автопогашення або вручну ---------- */
 function repayPlan(){let need=S.debt||0;const ua=S.unalloc||0,u=Math.min(need,ua-taxOf(ua));need-=u;const r=Math.min(need,S.bal.res);need-=r;
   const g=Math.round((ua-taxOf(ua)-u)/(1-taxPct()/100));   // залишок нерозподіленого «до податку», щоб при поділі податок не порахувався двічі
@@ -887,13 +891,10 @@ function intHTML(){
     ['Вчасно.Каса','Каса','Альтернативна каса для магазинів','не підключено'],
     ['Raiffeisen','Банк','Рахунок ФОП, виписка й овердрафт','підключено']];
   const on=([n,,,s])=>n==='Вчасно.Каса'?s==='підключено':isConn(n);   // Raiffeisen і Вчасно.Каса не перемикаються
-  return `<div class="g-int">${I.map(x=>{const [n,t,d]=x,c=on(x);return `<div class="card int"><div class="head">${srcIc(n)}<div><b>${srcName(n)}</b><div class="small">${t}</div></div></div><div class="small">${d}</div><span class="chip ${c?'':'grey'}">${c?'підключено':'не підключено'}</span>${n==='Raiffeisen'||n==='Вчасно.Каса'?'':`<label class="tgl"><span class="small">Отримувати дані</span><input type="checkbox" data-conn="${n}"${c?' checked':''}><span class="sw"></span></label>`}</div>`}).join('')}
-    <div class="card" id="c-reg" style="grid-column:1/-1"><div class="ct">Регулярні платежі з виписки</div><div class="small">Знайдено автоматично. Вимкніть, якщо платіж був разовий</div>
-      <div>${regHTML(S.off||{})}</div>${S.amt&&S.amt.o0===45000?'<button class="linkbtn" id="reg-back" style="align-self:flex-start">Повернути оренду 40 000 ₴</button>':''}</div></div>`;
+  return `<div class="g-int">${I.map(x=>{const [n,t,d]=x,c=on(x);return `<div class="card int"><div class="head">${srcIc(n)}<div><b>${srcName(n)}</b><div class="small">${t}</div></div></div><div class="small">${d}</div><span class="chip ${c?'':'grey'}">${c?'підключено':'не підключено'}</span>${n==='Raiffeisen'||n==='Вчасно.Каса'?'':`<label class="tgl"><span class="small">Отримувати дані</span><input type="checkbox" data-conn="${n}"${c?' checked':''}><span class="sw"></span></label>`}</div>`}).join('')}</div>`;
 }
-function intAfter(){S.off=S.off||{};bindReg($('c-reg'),S.off,i=>{save();toast(i.checked?'Враховуємо в прогнозі':'Більше не враховуємо')});
-  $('view').querySelectorAll('[data-conn]').forEach(i=>i.onchange=()=>{const n=i.dataset.conn;S.conn=S.conn||{};if(i.checked)delete S.conn[n];else S.conn[n]=false;render(false)});
-  const rb=$('reg-back');if(rb)rb.onclick=()=>{S.amt.o0=40000;render(false);toast('Оренда: 40 000 ₴')}}
+function intAfter(){
+  $('view').querySelectorAll('[data-conn]').forEach(i=>i.onchange=()=>{const n=i.dataset.conn;S.conn=S.conn||{};if(i.checked)delete S.conn[n];else S.conn[n]=false;render(false)})}
 
 /* ======================================================================
    СЦЕНАРІЙ ДЛЯ ЖУРІ
@@ -957,7 +958,7 @@ function newStatement(){if(authEl)return;if(auto)setMode(false);let any=false;
   render(false);
   if(!(S.amt&&S.amt.o0!=null)&&!isOff('o0')&&billState('o0')!=='paid'){any=true;
     openModal(`<div class="lbl">Нове у виписці</div><h3>Оренда складу: 45 000 ₴?</h3><div class="small">Остання оплата оренди у виписці 45 000 ₴, ми рахували 40 000 ₴. Рахувати 45 000 ₴ надалі?</div>
-      <div class="btnrow"><button class="btn" id="st-yes">Так, 45 000 ₴</button><button class="btn ghost" id="st-no">Ні, лишити 40 000 ₴</button></div><p class="note">Змінити можна на сторінці «Підключення».</p>`,'Нове у виписці');
+      <div class="btnrow"><button class="btn" id="st-yes">Так, 45 000 ₴</button><button class="btn ghost" id="st-no">Ні, лишити 40 000 ₴</button></div><p class="note">Змінити можна на сторінці «Прогноз і платежі».</p>`,'Нове у виписці');
     const ans=v=>{S.amt=S.amt||{};S.amt.o0=v;save();closeModal();render(false);toast(v===45000?'Оренда: 45 000 ₴':'Лишили 40 000 ₴')};$('st-yes').onclick=()=>ans(45000);$('st-no').onclick=()=>ans(40000)}
   if(!any)toast('Нових записів у виписці немає')}
 $('first').onclick=firstRun;$('stmt').onclick=newStatement;
@@ -1027,7 +1028,7 @@ function openOnb(step){if(!ob||!authEl)return;   // онбординг скас�
   if(step==='found')b=`<h2>Ось що ми знайшли</h2><p>Це регулярні платежі? Вимкніть, якщо платіж був разовий.</p>
     <div class="obl">${regHTML(ob.off)}</div>
     <div class="obl"><div class="kv" style="padding:12px 0"><span>Продажі</span><span>≈ ${fmt(SALES_DAY)} на день</span><span>Податок</span><span>${S.group==='12'?'фіксований, щомісяця':taxPct()+'% з надходжень'}, рахуємо самі</span><span>ЄСВ</span><span>${ESV.toLocaleString('uk-UA')} ₴ на місяць</span></div></div>
-    <p class="note">Змінити можна будь-коли на сторінці «Підключення».</p><button class="btn" id="o-next">Усе вірно</button>`;
+    <p class="note">Змінити можна будь-коли на сторінці «Прогноз і платежі».</p><button class="btn" id="o-next">Усе вірно</button>`;
   if(step==='pct'){const parts=ENVS.map(e=>[e,pctOf(e.k)]).filter(x=>x[1]>0);b=`<h2>Стартові відсотки</h2><p>Так ділитиметься кожне надходження. Змінити можна на сторінці «Конверти».</p>
     <div class="obl" style="padding:14px;display:flex;flex-direction:column;gap:10px"><div class="split">${parts.map(([e,p])=>`<i style="flex-grow:${p};background:${e.c}"></i>`).join('')}</div><div class="legend">${parts.map(([e,p])=>`<div><span class="lt"><i style="background:${e.c}"></i>${e.n}</span><b class="num">${p}%</b></div>`).join('')}</div></div>
     <div class="btncol"><button class="btn" id="o-next">Прийняти</button><button class="btn ghost" id="o-skip">Змінити пізніше</button></div>`}
