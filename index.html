@@ -316,6 +316,11 @@ body.nopanel .presenter{display:none}
 .authbox .bankbox{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .regrow{padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}.regrow:first-child{border-top:0}
 .regrow .t,.regrow .s{display:block}.regrow .t{font-weight:500;color:var(--ink)}.regrow .s{font-size:12.5px;color:var(--muted)}
+.regrow .linkbtn{order:1;margin-left:auto;flex:none;padding:5px 8px}
+.bh .linkbtn{padding:5px 0 5px 8px}
+.field.sm input,.field.sm select{font-size:15px;font-weight:500}
+.field select{font:inherit;color:var(--ink);background:var(--surface-2);border:0;border-radius:12px;padding:11px 13px;width:100%}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .regrow .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;flex:none}
 button.chip{border:0;cursor:pointer}
 .authbox .logo{width:52px;height:52px;border-radius:14px}
@@ -394,7 +399,7 @@ const inDays=i=>i===0?'сьогодні':i===1?'завтра':`через ${i} $
 /* «Витрати» = операційні (оренда, зарплата, тарифи) + маркетинг. Один баланс, частки задаються окремо */
 const ENVS=[
   {k:'tax', n:'Податки',          c:'var(--c-tax)', l:'П', get goal(){return S.group==='12'?TAX12+ESV:TAX_Q3+3*ESV}, get gl(){return S.group==='12'?'щомісяця податок, ВЗ і ЄСВ':'до 19.11 · податок за квартал і ЄСВ'}},
-  {k:'buy', n:'Закупівля',        c:'var(--c-buy)', l:'З', goal:52000, get gl(){return isOff('buy')?'закупівля товару':'партія постачальнику через 13 днів'}},
+  {k:'buy', n:'Закупівля',        c:'var(--c-buy)', l:'З', get goal(){return amtOf(EDIT(BUY))}, get gl(){return isOff('buy')?'закупівля товару':'партія постачальнику '+inDays(EDIT(BUY).d)}},
   {k:'exp', n:'Витрати',          c:'var(--c-exp)', l:'В', get goal(){return amtOf(OPS_PAYS[0])}, get gl(){return isOff('o0')?'регулярні платежі з виписки':'оренда '+fmt(amtOf(OPS_PAYS[0]))+' '+inDays(payDay(0))}},
   {k:'res', n:'Резерв',           c:'var(--c-res)', l:'Р', goal:60000, gl:'подушка на місяць'},
   {k:'self',n:'Собі',             c:'var(--c-self)',l:'С', goal:0,     gl:'вільні гроші'},
@@ -402,14 +407,21 @@ const ENVS=[
 const ESV=1902.34, TAX_Q3=70200, TAX12=2594.10;   // ЄСВ за себе на місяць; податок за III квартал; 1–2 група: єдиний податок до 1 729,40 + військовий збір 864,70 на місяць
 const SALES_DAY=13000;                       // середні продажі за день (8 тижнів історії)
 const OPS_PAYS=[{id:'o0',d:2,t:'Оренда складу',a:40000},{id:'meta',d:10,t:'Реклама Meta',a:18000},{id:'o1',d:14,t:'Зарплата помічниці',a:15000},{id:'o2',d:19,t:'Тариф Prom.ua',a:4500}];   // платежі з «Витрат»
-const payDay=(j,mv)=>{mv=mv||{};return mv[j]!=null?mv[j]:S.moved&&S.moved[j]!=null?S.moved[j]:OPS_PAYS[j].d};   // платіж можна перенести на іншу дату
+const BUY={id:'buy',d:13,t:'Партія постачальнику',a:52000};   // платіж із «Закупівлі»: лише в календарі, у прогноз «Витрат» не входить
+/* правки платежів (вікно «Змінити платіж»): S.ed[id] = назва, дата, періодичність, реквізити; S.extra = додані платежі. Порожні = як у коді */
+const EDIT=p=>({...p,...(S.ed&&S.ed[p.id])});
+const EXPP=()=>[...OPS_PAYS,...(S.extra||[])].map(EDIT);   // платежі «Витрат»: j = індекс тут, видалені лишаються в списку, щоб індекси не зсувались
+const payDay=(j,mv)=>{mv=mv||{};return mv[j]!=null?mv[j]:S.moved&&S.moved[j]!=null?S.moved[j]:EXPP()[j].d};   // платіж можна перенести на іншу дату
+const REPS={w:'щотижня',m:'щомісяця',q:'щокварталу',o:'разово'};
+const occ=(p,d0)=>{const r=[];for(let d=d0,k=0;d<30;d+=p.rep==='w'?7:99,k++)r.push({...p,id:k?p.id+'~'+k:p.id,d});return r};   // щотижневий платіж повторюється в межах 30 днів, id повторів «id~1», «id~2»
 /* регулярні платежі «знайдено у виписці»: Олена відповідає так/ні, нову суму підтверджує (S.off, S.amt; порожні = як у DEF) */
 const amtOf=p=>(S.amt&&S.amt[p.id])||p.a;
 const isOff=id=>!!(S.off&&S.off[id]);
 const isConn=n=>!(S.conn&&S.conn[n]===false);
-const REG=[...OPS_PAYS,{id:'buy',t:'Партія постачальнику',a:52000}];
+const REGP=()=>[...EXPP().map((p,j)=>({...p,j})),EDIT(BUY)].filter(p=>!p.del);
+const dayOf=p=>p.j!=null?payDay(p.j):p.d;
 const REG_S={o0:'щомісяця',meta:'з картки ФОП',o1:'щомісяця',o2:'щомісяця',buy:'фабрика, регулярно'};
-const regHTML=off=>REG.map(p=>`<label class="tgl regrow"><span><span class="t">${p.t}</span><span class="s">${fmt(amtOf(p))} · ${REG_S[p.id]}</span></span><input type="checkbox" data-reg="${p.id}"${off[p.id]?'':' checked'}><span class="sw"></span></label>`).join('');
+const regHTML=(off,edit)=>REGP().map(p=>`<label class="tgl regrow"><span><span class="t">${p.t}</span><span class="s">${fmt(amtOf(p))} · ${p.rep?REPS[p.rep]:REG_S[p.id]}${edit?' · '+dm(dayOf(p)):''}</span></span>${edit?`<button type="button" class="linkbtn" data-edit="${p.id}">Змінити</button>`:''}<input type="checkbox" data-reg="${p.id}"${off[p.id]?'':' checked'}><span class="sw"></span></label>`).join('');
 const bindReg=(root,off,after)=>root.querySelectorAll('[data-reg]').forEach(i=>i.onchange=()=>{if(i.checked)delete off[i.dataset.reg];else off[i.dataset.reg]=true;if(after)after(i)});
 const OD_RATE=.24, OD_SHARE=.30;             // умовні умови овердрафту
 
@@ -440,7 +452,7 @@ const expSplit=v=>{const o=S.pct.ops,m=S.pct.mkt,t=o+m||1;return{ops:v*o/t,mkt:v
 /* прогноз конверта «Витрати»: щодня приходить його частка продажів, виходять оренда, реклама, ЗП, тарифи
    x.add: докласти гроші зараз; x.debt: додати борг; x.move: перенести платіж; x.now: оплатити платіж сьогодні */
 function forecast(x){x=x||{};
-  const PL=OPS_PAYS.map((p,j)=>({...p,j,a:amtOf(p),d:x.now===p.id?0:payDay(j,x.move)})).filter(p=>!isOff(p.id)&&!(S.paid&&S.paid[p.id]==='paid'));   // сплачене із застосунку вже списано з конверта
+  const PL=EXPP().map((p,j)=>({...p,j,a:amtOf(p)})).filter(p=>!p.del&&!isOff(p.id)).flatMap(p=>occ(p,payDay(p.j,x.move))).map(p=>x.now===p.id?{...p,d:0}:p).filter(p=>!(S.paid&&S.paid[p.id]==='paid'));   // сплачене із застосунку вже списано з конверта
   const tp=taxPct()/100,k=expPct()/100/(1-tp);let debt=(S.debt||0)+(x.debt||0);const ua=S.unalloc||0,pend=ua-taxOf(ua)-repayOf(ua);debt-=repayOf(ua);
   let b=S.bal.exp+pend*k+(x.add||0);const days=[];let inflow0=null;
   for(let i=0;i<30;i++){const pays=PL.filter(p=>p.d===i);const low=b-pays.reduce((a,p)=>a+p.a,0);
@@ -630,12 +642,41 @@ function opsHTML(){
   return `<section class="blk"><div class="bh">Усі надходження<span class="sub">${S.tx.length}</span></div>
     <div class="list">${Object.entries(groups).map(([k,a])=>`<div class="dayh">${k}</div>${a.map(([x,j])=>txRow(x,j)).join('')}`).join('')}</div></section>
   <section class="blk"><div class="bh">Підключені сервіси</div><div class="list">${INTEGR.map(([n,t])=>`<div class="li">${srcIc(n)}<div><div class="t">${srcName(n)}</div><div class="s">${t}</div></div>${n==='Raiffeisen'?'<span class="chip">підключено</span>':`<button class="chip${isConn(n)?'':' grey'}" data-conn="${n}">${isConn(n)?'підключено':'не підключено'}</button>`}</div>`).join('')}</div></section>
-  <section class="blk" id="c-reg"><div class="bh">Регулярні платежі з виписки</div><div class="small">Знайдено автоматично. Вимкніть, якщо платіж був разовий</div>
-    <div>${regHTML(S.off||{})}</div>${S.amt&&S.amt.o0===45000?'<button class="linkbtn" id="reg-back">Повернути оренду 40 000 ₴</button>':''}</section>`;
+  <section class="blk" id="c-reg"><div class="bh">Регулярні платежі з виписки<button class="linkbtn" id="reg-add">+ Додати</button></div><div class="small">Знайдено автоматично. Вимкніть, якщо платіж був разовий, або змініть</div>
+    <div>${regHTML(S.off||{},true)}</div>${S.amt&&S.amt.o0===45000?'<button class="linkbtn" id="reg-back">Повернути оренду 40 000 ₴</button>':''}</section>`;
 }
-function opsAfter(){S.off=S.off||{};bindReg($('c-reg'),S.off,i=>{save();toast(i.checked?'Враховуємо в прогнозі':'Більше не враховуємо')});
+function opsAfter(){S.off=S.off||{};bindReg($('c-reg'),S.off,i=>{save();render(false);toast(i.checked?'Враховуємо в прогнозі':'Більше не враховуємо')});
+  $('c-reg').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openPayEdit(b.dataset.edit));$('reg-add').onclick=()=>openPayEdit('new');
   $('scr').querySelectorAll('[data-conn]').forEach(b=>b.onclick=()=>{const n=b.dataset.conn;S.conn=S.conn||{};if(isConn(n))S.conn[n]=false;else delete S.conn[n];render(false)});
   const rb=$('reg-back');if(rb)rb.onclick=()=>{S.amt.o0=40000;render(false);toast('Оренда: 40 000 ₴')}}
+
+/* ---------- змінити регулярний платіж або додати свій ---------- */
+const ymd=i=>{const d=dayAt(i);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const clean=v=>String(v||'').replace(/[<>&"]/g,'').trim();
+function openPayEdit(id){const nw=id==='new',p=nw?{id:'x'+Date.now().toString(36),t:'',a:0,d:7,rep:'m',to:'',iban:'',note:''}:REGP().find(x=>x.id===id);if(!p)return;
+  const custom=!!(S.extra||[]).find(x=>x.id===p.id);
+  openSheet(`<div class="lbl">${nw?'Новий регулярний платіж':'Регулярний платіж'}</div><h3>${nw?'Додати платіж':'Змінити платіж'}</h3>
+    <label class="field sm">Назва<input id="pe-t" type="text" maxlength="40" value="${p.t}" placeholder="Наприклад, інтернет"></label>
+    <div class="fgrid"><label class="field sm">Сума, ₴<input id="pe-a" type="text" inputmode="numeric" autocomplete="off" value="${amtOf(p)?fmtn(amtOf(p)):''}" placeholder="0"></label>
+      <label class="field sm">Дата платежу<input id="pe-d" type="date" min="${ymd(0)}" max="${ymd(29)}" value="${ymd(nw?p.d:dayOf(p))}"></label></div>
+    <label class="field sm">Періодичність<select id="pe-r">${Object.entries(REPS).map(([k,n])=>`<option value="${k}"${k===(p.rep||'m')?' selected':''}>${n}</option>`).join('')}</select></label>
+    <label class="field sm">Отримувач<input id="pe-to" type="text" maxlength="60" value="${p.to||PAYEE[p.id]||''}" placeholder="Кому платимо"></label>
+    <label class="field sm">IBAN<input id="pe-ib" type="text" maxlength="34" autocomplete="off" value="${p.iban||''}" placeholder="UA… (29 символів)"></label>
+    <label class="field sm">Призначення платежу<input id="pe-n" type="text" maxlength="100" value="${p.note||''}" placeholder="За що платимо"></label>
+    <div class="hint crit" id="pe-err" hidden></div>
+    <div class="btncol"><button class="btn" id="pe-ok">${nw?'Додати':'Зберегти'}</button><button class="btn ghost" id="pe-cl">Скасувати</button>${custom?'<button class="btn ghost" id="pe-del">Видалити</button>':''}</div>`,'Змінити платіж');
+  const err=m=>{const e=$('pe-err');e.textContent=m;e.hidden=false};
+  $('pe-a').oninput=()=>{const i=$('pe-a'),n=parseAmt(i.value);i.value=n?fmtn(n):''};
+  $('pe-cl').onclick=closeSheet;
+  const dl=$('pe-del');if(dl)dl.onclick=()=>{S.extra.find(x=>x.id===p.id).del=true;save();closeSheet();render(false);toast('Платіж видалено')};
+  $('pe-ok').onclick=()=>{const t=clean($('pe-t').value),a=parseAmt($('pe-a').value),iban=$('pe-ib').value.replace(/\s/g,'').toUpperCase(),dv=$('pe-d').value,d=Math.round((new Date(dv+'T00:00')-today)/864e5);
+    if(!t)return err('Вкажіть назву платежу');if(!(a>0))return err('Вкажіть суму більше нуля');
+    if(!dv||isNaN(d)||d<0||d>29)return err('Дата має бути в межах найближчих 30 днів');
+    if(iban&&!/^UA\d{27}$/.test(iban))return err('IBAN: UA і 27 цифр');   // shortcut: лише формат, контрольну суму не рахуємо
+    const f={t,d,rep:$('pe-r').value,to:clean($('pe-to').value),iban,note:clean($('pe-n').value)};
+    if(nw){S.extra=S.extra||[];S.extra.push({id:p.id,a,...f})}
+    else{S.ed=S.ed||{};S.ed[p.id]={...S.ed[p.id],...f};S.amt=S.amt||{};S.amt[p.id]=a;if(p.j!=null&&S.moved)delete S.moved[p.j]}   // нова дата замінює перенесення
+    save();closeSheet();render(false);toast(nw?'Платіж додано':'Платіж оновлено')}}
 
 /* ======================================================================
    ШТОРКИ
@@ -836,7 +877,9 @@ function onSheetClosed(){if(od.step>=1&&od.step<4&&!od.finished)odLeft=true}
 
 /* ---------- календар платежів: оплата прямо з застосунку (імітація) ---------- */
 const PAYEE={o0:'Орендодавець складу',o1:'Помічниця, зарплата',o2:'Prom.ua',meta:'Meta, рекламний кабінет',buy:'Фабрика-постачальник',tax:'ДПС, єдиний податок і військовий збір'};
-const CAL=()=>[...OPS_PAYS.map((p,j)=>({id:p.id,j,e:'exp',t:p.t,a:amtOf(p)})),{id:'buy',i:13,e:'buy',t:'Партія постачальнику',a:52000},{id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Податок за III квартал',a:70200}].filter(p=>!isOff(p.id)).map(p=>({...p,i:p.j!=null?payDay(p.j):p.i})).sort((x,y)=>x.i-y.i);
+const CAL=()=>{const b=EDIT(BUY);return [...EXPP().map((p,j)=>({...p,j,e:'exp',a:amtOf(p)})).filter(p=>!p.del).flatMap(p=>occ(p,payDay(p.j))).map(p=>({...p,i:p.d})),
+  {...b,i:b.d,e:'buy',a:amtOf(b)},
+  {id:'tax',i:Math.min(29,Math.max(0,Math.round((new Date(dayAt(0).getFullYear(),10,19)-new Date(dayAt(0).getFullYear(),dayAt(0).getMonth(),dayAt(0).getDate()))/864e5))),e:'tax',t:'Податок за III квартал',a:70200}].filter(p=>!isOff(p.id.split('~')[0])).sort((x,y)=>x.i-y.i)};
 const envName=k=>ENVS.find(e=>e.k===k).n;
 const billState=id=>S.paid&&S.paid[id];
 function calHTML(f){f=f||forecast();return `<div class="card" id="c-cal"><div class="ct">Платежі<span class="sub">30 днів</span></div><div class="list">${CAL().map(p=>{const st=billState(p.id),low=p.j!=null&&st!=='paid'?f.days[p.i].low:null;
@@ -850,8 +893,8 @@ function openBill(id){const p=CAL().find(x=>x.id===id);if(!p)return;const f=fore
   const canSched=!now&&p.j!=null&&!gapBefore;                          // інакше плануємо на дату платежу
   const short=p.j!=null?(gapBefore?f.gap.need:0):p.a-S.bal[p.e];
   let m='card';
-  openSheet(`<div class="lbl">${PAYEE[p.id]}</div><h3>${p.t} · ${fmt(p.a)}</h3>
-    <div class="kv"><span>Дата</span><span>${wd(p.i)} ${dm(p.i)}</span><span>Конверт</span><span>${envName(p.e)} · ${fmt(S.bal[p.e])}</span></div>
+  openSheet(`<div class="lbl">${p.to||PAYEE[p.id.split('~')[0]]||'Отримувач'}</div><h3>${p.t} · ${fmt(p.a)}</h3>
+    <div class="kv"><span>Дата</span><span>${wd(p.i)} ${dm(p.i)}</span><span>Конверт</span><span>${envName(p.e)} · ${fmt(S.bal[p.e])}</span>${p.iban?`<span>IBAN</span><span>${p.iban}</span>`:''}${p.note?`<span>Призначення</span><span>${p.note}</span>`:''}</div>
     ${now||canSched?`<div class="paym">${METHODS.map(([k,n,s,c,l])=>`<button class="pm" data-m="${k}" aria-pressed="${k===m}"><span class="pmi" style="background:${c}">${l}</span><span>${n}${s?`<span class="small" style="display:block">${s}</span>`:''}</span><span class="rd"></span></button>`).join('')}</div>
       <div class="btncol"><button class="btn" id="bl-go">${now?'Оплатити '+fmt(p.a):'Запланувати на '+dm(p.i)}</button><button class="btn ghost" id="bl-cl">Скасувати</button></div>
       ${canSched?`<p class="note">Сьогодні в конверті менше, ніж треба. Платіж піде ${dm(p.i)}, коли надходження його доповнять.</p>`:''}`
