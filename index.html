@@ -352,7 +352,7 @@ button.chip{border:0;cursor:pointer}
     <div class="ph"><b>Демо для журі</b><button class="linkbtn" id="p-hide">Сховати</button></div>
     <div class="pbox"><h2>Сценарій</h2><div class="jsteps" id="jsteps-side"></div><button class="linkbtn" data-reset>Скинути демо</button><button class="linkbtn" data-first>Перший запуск</button><button class="linkbtn" data-stmt>Нова виписка з банку</button></div>
     <div class="pbox"><h2>Тестова оплата WayForPay</h2>
-      <div class="card-test">Картка <b>4111 1111 1111 1111</b>, будь-який термін і CVV. Гроші не списуються.</div></div>
+      <div class="card-test">Тестовий WayForPay відхиляє будь-яку картку. Для демо надійніше «Клієнт оплатив».</div></div>
     <div class="pbox"><h2>Інші версії</h2><a class="linkbtn" href="web/">Вебверсія для комп'ютера</a>
       <div class="qrrow"><div class="qr" id="qr"></div><span class="small">Відкрити на телефоні і додати на головний екран</span></div></div>
   </aside>
@@ -762,7 +762,7 @@ function flyIn(a,rp,shares){
 const WFP={account:'test_merch_n1',secret:'flk3409refn54t54t*FNJRET'};
 function loadWFP(){return new Promise((res,rej)=>{if(window.Wayforpay)return res();const s=document.createElement('script');s.src='https://secure.wayforpay.com/server/pay-widget.js';s.onload=()=>res();s.onerror=()=>rej(new Error('script'));document.head.appendChild(s)})}
 async function payWFP(a,title){
-  const st=$('pay-status');st.textContent='Відкриваємо WayForPay…';
+  const st=$('pay-status');st.textContent='Відкриваємо WayForPay…';window.__wfpDecl=false;
   try{await loadWFP()}catch(e){st.textContent='WayForPay не завантажився. Перевірте інтернет.';return}
   const ref='FK-'+Date.now(),date=Math.floor(Date.now()/1000),domain=location.hostname||'localhost';
   const sig=hmacMD5(WFP.secret,[WFP.account,domain,ref,date,a,'UAH',title,1,a].join(';'));
@@ -771,11 +771,11 @@ async function payWFP(a,title){
   try{
     const w=new window.Wayforpay();
     w.run({merchantAccount:WFP.account,merchantDomainName:domain,authorizationType:'SimpleSignature',merchantSignature:sig,orderReference:ref,orderDate:date,amount:a,currency:'UAH',
-      productName:[title],productPrice:[a],productCount:[1],clientFirstName:'Олена',clientLastName:'Коваль',clientPhone:'380000000000',language:'UA'},
-      function(){ok()},function(r){st.textContent='Оплату відхилено'+(r&&r.reason?': '+r.reason:'')+'. Тестовий режим приймає тільки картку 4111 1111 1111 1111.'},function(){st.textContent='Платіж обробляється…'});
+      productName:[title],productPrice:[a],productCount:[1],clientFirstName:'Олена',clientLastName:'Коваль',clientPhone:'380000000000',clientEmail:(S.profile&&S.profile.email)||'olena@krok.shop',language:'UA'},
+      function(){ok()},function(r){window.__wfpDecl=true;st.innerHTML='Тестовий WayForPay відхилив оплату: у тестовому режимі картки не проходять. <button class="linkbtn" id="pay-force">Зарахувати як успішну (імітація)</button>';$('pay-force').onclick=()=>{if(handled)return;handled=true;st.textContent='';closeSheet();handlePayment(a,'Імітація',title)}},function(){st.textContent='Платіж обробляється…'});
   }catch(e){st.textContent='WayForPay не відкрився: '+e.message}
 }
-window.addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk();if(e.data==='WfpWidgetEventClose'){const st=$('pay-status');if(st)st.textContent='Оплату скасовано.'}});
+window.addEventListener('message',e=>{if(e.data==='WfpWidgetEventApproved'&&window.__wfpOk)window.__wfpOk();if(e.data==='WfpWidgetEventClose'){const st=$('pay-status');if(st&&!window.__wfpDecl)st.textContent='Оплату скасовано.'}});
 
 /* HMAC-MD5 (UTF-8). MD5 — RFC 1321 */
 function md5bytes(bytes){
