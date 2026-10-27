@@ -303,7 +303,7 @@ body.nopanel .presenter{display:none}
 .push .h span:first-child{font-weight:600;color:var(--ink);opacity:.8}
 .push .tt{font-size:14.5px;font-weight:600;line-height:1.3;display:block}
 .push .b{font-size:14px;line-height:1.3;display:block}
-.toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);z-index:36;background:var(--ink);color:var(--surface);border-radius:12px;padding:10px 14px;font-size:14px;white-space:nowrap;animation:rise .25s var(--ease)}
+.toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);z-index:95;background:var(--ink);color:var(--surface);border-radius:12px;padding:10px 14px;font-size:14px;white-space:nowrap;animation:rise .25s var(--ease)}
 .hl{animation:hl 1.8s var(--ease)}
 @keyframes hl{0%,100%{box-shadow:0 0 0 0 transparent}15%,70%{box-shadow:0 0 0 2px var(--warn)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -1090,9 +1090,10 @@ function openOnb(step){if(!ob||!authEl)return;   // онбординг скас�
   if(step==='pct'){const parts=ENVS.map(e=>[e,pctOf(e.k)]).filter(x=>x[1]>0);b=`<h2>Стартові відсотки</h2><p>Так ділитиметься кожне надходження. Змінити можна на вкладці «Конверти».</p>
     <div class="obl" style="padding:14px;display:flex;flex-direction:column;gap:10px"><div class="split">${parts.map(([e,p])=>`<i style="flex-grow:${p};background:${e.c}"></i>`).join('')}</div><div class="legend">${parts.map(([e,p])=>`<span><i style="background:${e.c}"></i>${e.n} ${p}%</span>`).join('')}</div></div>
     <div class="btncol"><button class="btn" id="o-next">Прийняти</button><button class="btn ghost" id="o-skip">Змінити пізніше</button></div>`}
-  if(step==='conn')b=`<h2>Каси й еквайринг</h2><p>За бажанням. Тоді оплати видно одразу, ще до зарахування на рахунок.</p>
-    <div class="obl">${OB_CONN.map(([n,t])=>`<label class="tgl regrow"><span style="display:flex;gap:10px;align-items:center">${srcIc(n)}<span><span class="t">${srcName(n)}</span><span class="s">${t} · знайшли у виписці</span></span></span><input type="checkbox" data-conn="${n}"${ob.conn[n]===false?'':' checked'}><span class="sw"></span></label>`).join('')}</div>
-    <div class="btncol"><button class="btn" id="o-next">Підключити</button><button class="btn ghost" id="o-skip">Пропустити</button></div>`;
+  if(step==='conn'){OB_CONN.forEach(([n])=>{if(ob.conn[n]===undefined)ob.conn[n]=false});   // спершу нічого не підключено, користувач підв'язує сам
+    b=`<h2>Каси й еквайринг</h2><p>За бажанням. Тоді оплати видно одразу, ще до зарахування на рахунок.</p>
+    <div class="obl">${OB_CONN.map(([n,t])=>`<div class="tgl regrow" style="cursor:default"><span style="display:flex;gap:10px;align-items:center">${srcIc(n)}<span><span class="t">${srcName(n)}</span><span class="s">${t}</span></span></span><span data-conn="${n}">${ob.conn[n]===false?`<button class="billbtn" style="margin:0" data-link="${n}">Підв'язати</button>`:'<span class="chip">підключено</span>'}</span></div>`).join('')}</div>
+    <button class="btn" id="o-next">${OB_CONN.some(([n])=>ob.conn[n]!==false)?'Далі':'Пропустити'}</button>`}
   if(step==='push')b=`<h2>Сповіщення</h2><p>Попередимо про касовий розрив і нагадаємо про платежі. Стежити самій не треба.</p>
     ${'Notification' in window?`<div class="obl"><label class="tgl" style="padding:12px 0"><span>Сповіщення на телефон</span><input type="checkbox" id="o-push"${S.sysPush?' checked':''}><span class="sw"></span></label></div>`:''}
     <button class="btn" id="o-next">Готово</button>`;
@@ -1105,8 +1106,10 @@ function openOnb(step){if(!ob||!authEl)return;   // онбординг скас�
     obT.push(setTimeout(()=>openOnb('found'),RM?10:2000))}
   if(step==='found')bindReg(authEl,ob.off);
   if(step==='pct')sk.onclick=()=>nx.click();
-  if(step==='conn'){authEl.querySelectorAll('[data-conn]').forEach(i=>i.onchange=()=>{if(i.checked)delete ob.conn[i.dataset.conn];else ob.conn[i.dataset.conn]=false});sk.onclick=()=>{OB_CONN.forEach(([n])=>ob.conn[n]=false);openOnb('push')}}
+  if(step==='conn')authEl.querySelectorAll('[data-link]').forEach(bt=>bt.onclick=()=>{const n=bt.dataset.link,slot=bt.parentNode;slot.innerHTML='<span class="spin" style="width:18px;height:18px"></span>';   // імітація входу в кабінет сервісу
+    obT.push(setTimeout(()=>{if(!ob||!authEl)return;ob.conn[n]=true;slot.innerHTML='<span class="chip">підключено</span>';nx.textContent='Далі'},RM?10:900))});
   if(step==='push'){const p=$a('o-push');if(p)p.onchange=()=>askPush(p)}
+  if(step==='push'&&'Notification' in window&&Notification.permission==='denied'){const pp=$a('o-push');if(pp)pp.closest('label').insertAdjacentHTML('afterend','<p class="note" style="padding:0 0 8px">Браузер заблокував сповіщення для цього сайту. Дозвольте їх у налаштуваннях сайту, тоді тумблер запрацює.</p>')}
 }
 function finishOnb(){S.off=ob.off;S.conn=ob.conn;ob=null;S.auth=true;finishAuth();setTab('home');setTimeout(()=>toast('Готово: дані з виписки підтягнуто'),300)}
 async function askPush(pp){if(pp.checked){let r=Notification.permission;if(r==='default'){try{r=await Notification.requestPermission()}catch(e){}}S.sysPush=r==='granted';pp.checked=S.sysPush;save();toast(S.sysPush?'Сповіщення увімкнено':'Браузер не дозволив сповіщення')}else{S.sysPush=false;save()}}
