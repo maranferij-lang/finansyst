@@ -436,7 +436,7 @@ const isConn=n=>!(S.conn&&S.conn[n]===false);
 const REGP=()=>[...EXPP().map((p,j)=>({...p,j})),EDIT(BUY)].filter(p=>!p.del);
 const dayOf=p=>p.j!=null?payDay(p.j):p.d;
 const REG_S={o0:'щомісяця',meta:'з картки ФОП',o1:'щомісяця',o2:'щомісяця',buy:'фабрика, регулярно'};
-const regHTML=(off,edit)=>REGP().map(p=>`<label class="tgl regrow"><span><span class="t">${p.t}</span><span class="s">${fmt(amtOf(p))} · ${p.rep?REPS[p.rep]:REG_S[p.id]}${edit?' · '+dm(dayOf(p)):''}</span></span>${edit?`<button type="button" class="linkbtn" data-edit="${p.id}">Змінити</button>`:''}<input type="checkbox" data-reg="${p.id}"${off[p.id]?'':' checked'}><span class="sw"></span></label>`).join('');
+const regHTML=(off,edit)=>REGP().map(p=>`<label class="tgl regrow"><span><span class="t">${p.t}</span><span class="s">${fmt(amtOf(p))} · ${p.rep?REPS[p.rep]:REG_S[p.id]}${edit?' · '+dm(dayOf(p)):''}</span></span><input type="checkbox" data-reg="${p.id}"${off[p.id]?'':' checked'}><span class="sw"></span>${edit?`<button type="button" class="linkbtn" data-edit="${p.id}">Змінити</button>`:''}</label>`).join('');
 const bindReg=(root,off,after)=>root.querySelectorAll('[data-reg]').forEach(i=>i.onchange=()=>{if(i.checked)delete off[i.dataset.reg];else off[i.dataset.reg]=true;if(after)after(i)});
 const OD_RATE=.24,OD_SHARE=.30;
 const DEF={group:'3',pct:{buy:50,ops:12,mkt:15,res:5},bal:{tax:51426,buy:38400,exp:28480,res:12000,self:6800},
@@ -829,10 +829,12 @@ function openPayEdit(id){const nw=id==='new',p=nw?{id:'x'+Date.now().toString(36
     <label class="field sm">Призначення платежу<input id="pe-n" type="text" maxlength="100" value="${p.note||''}" placeholder="За що платимо"></label>
     <div class="hint crit" id="pe-err" hidden></div>
     <div class="btnrow"><button class="btn" id="pe-ok">${nw?'Додати':'Зберегти'}</button><button class="btn ghost" id="pe-cl">Скасувати</button>${custom?'<button class="btn ghost" id="pe-del">Видалити</button>':''}</div>`,'Змінити платіж');
+  if(authEl){const m=$('layer').querySelector('.modal');if(m)m.style.zIndex=92}   // над екраном онбордингу (z-index 90)
+  const fin=()=>{if(!authEl)save();closeModal();authEl?openOnb('found'):render(false)};
   const err=m=>{const e=$('pe-err');e.textContent=m;e.hidden=false};
   $('pe-a').oninput=()=>{const i=$('pe-a'),n=parseAmt(i.value);i.value=n?fmtn(n):''};
   $('pe-cl').onclick=closeModal;
-  const dl=$('pe-del');if(dl)dl.onclick=()=>{S.extra.find(x=>x.id===p.id).del=true;save();closeModal();render(false);toast('Платіж видалено')};
+  const dl=$('pe-del');if(dl)dl.onclick=()=>{S.extra.find(x=>x.id===p.id).del=true;fin();toast('Платіж видалено')};
   $('pe-ok').onclick=()=>{const t=clean($('pe-t').value),a=parseAmt($('pe-a').value),iban=$('pe-ib').value.replace(/\s/g,'').toUpperCase(),dv=$('pe-d').value,d=Math.round((new Date(dv+'T00:00')-today)/864e5);
     if(!t)return err('Вкажіть назву платежу');if(!(a>0))return err('Вкажіть суму більше нуля');
     if(!dv||isNaN(d)||d<0||d>29)return err('Дата має бути в межах найближчих 30 днів');
@@ -840,7 +842,7 @@ function openPayEdit(id){const nw=id==='new',p=nw?{id:'x'+Date.now().toString(36
     const f={t,d,rep:$('pe-r').value,to:clean($('pe-to').value),iban,note:clean($('pe-n').value)};
     if(nw){S.extra=S.extra||[];S.extra.push({id:p.id,a,...f})}
     else{S.ed=S.ed||{};S.ed[p.id]={...S.ed[p.id],...f};S.amt=S.amt||{};S.amt[p.id]=a;if(p.j!=null&&S.moved)delete S.moved[p.j]}   // нова дата замінює перенесення
-    save();closeModal();render(false);toast(nw?'Платіж додано':'Платіж оновлено')}}
+    fin();toast(nw?'Платіж додано':'Платіж оновлено')}}
 
 /* ---------- календар платежів: оплата прямо з застосунку (імітація) ---------- */
 const PAYEE={o0:'Орендодавець складу',o1:'Помічниця, зарплата',o2:'Prom.ua',meta:'Meta, рекламний кабінет',buy:'Фабрика-постачальник',tax:'ДПС, єдиний податок і військовий збір'};
@@ -1069,7 +1071,7 @@ function openOnb(step){if(!ob||!authEl)return;   // онбординг скас�
   if(step==='scan')b=`<h2>Аналізуємо виписку</h2><p>Останні 8 тижнів: надходження, регулярні платежі, податки.</p>
     <div class="checks" id="o-checks"><div><span class="c"></span>Надходження і середні продажі</div><div><span class="c"></span>Повторювані платежі</div><div><span class="c"></span>Податки і ЄСВ</div></div>`;
   if(step==='found')b=`<h2>Ось що ми знайшли</h2><p>Це регулярні платежі? Вимкніть, якщо платіж був разовий.</p>
-    <div class="obl">${regHTML(ob.off)}</div>
+    <div class="obl">${regHTML(ob.off,true)}</div>
     <div class="obl"><div class="kv" style="padding:12px 0"><span>Продажі</span><span>≈ ${fmt(SALES_DAY)} на день</span><span>Податок</span><span>${S.group==='12'?'фіксований, щомісяця':taxPct()+'% з надходжень'}, рахуємо самі</span><span>ЄСВ</span><span>${ESV.toLocaleString('uk-UA')} ₴ на місяць</span></div></div>
     <p class="note">Змінити можна будь-коли на сторінці «Прогноз і платежі».</p><button class="btn" id="o-next">Усе вірно</button>`;
   if(step==='pct'){const parts=ENVS.map(e=>[e,pctOf(e.k)]).filter(x=>x[1]>0);b=`<h2>Стартові відсотки</h2><p>Так ділитиметься кожне надходження. Змінити можна на сторінці «Конверти».</p>
@@ -1091,7 +1093,7 @@ function openOnb(step){if(!ob||!authEl)return;   // онбординг скас�
   if(step==='consent'){$a('o-back').onclick=()=>openOnb('bank');$a('o-file').onclick=()=>nx.click()}
   if(step==='scan'){[...authEl.querySelectorAll('#o-checks>div')].forEach((r,j)=>{obT.push(setTimeout(()=>r.classList.add('busy'),j*550));obT.push(setTimeout(()=>{r.classList.remove('busy');r.classList.add('done');r.querySelector('.c').innerHTML='<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-6"/></svg>'},j*550+480))});
     obT.push(setTimeout(()=>openOnb('found'),RM?10:2000))}
-  if(step==='found')bindReg(authEl,ob.off);
+  if(step==='found'){bindReg(authEl,ob.off);authEl.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openPayEdit(b.dataset.edit))}
   if(step==='pct')sk.onclick=()=>nx.click();
   if(step==='conn')authEl.querySelectorAll('[data-link]').forEach(bt=>bt.onclick=()=>{const n=bt.dataset.link,slot=bt.parentNode;slot.innerHTML='<span class="spin" style="width:18px;height:18px"></span>';   // імітація входу в кабінет сервісу
     obT.push(setTimeout(()=>{if(!ob||!authEl)return;ob.conn[n]=true;slot.innerHTML='<span class="chip">підключено</span>';nx.textContent='Далі'},RM?10:900))});
