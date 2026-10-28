@@ -1,6 +1,6 @@
 // Кешує оболонку застосунку, щоб він відкривався як звичайна апка навіть зі слабким інтернетом.
-const CACHE='waybill-v1';
-const SHELL=['./','./index.html','./manifest.webmanifest','../icons/icon-192.png','../icons/icon-512.png','../icons/apple-touch-icon.png'];
+const CACHE='waybill-v2';
+const SHELL=['./','./index.html','./app.js','./app.css','./web/','./demo/','./manifest.webmanifest','../icons/icon-192.png','../icons/icon-512.png','../icons/apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('waybill-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
