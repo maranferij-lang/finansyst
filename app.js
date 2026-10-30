@@ -3,12 +3,13 @@
 const $=id=>document.getElementById(id);
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const visible=el=>!!el&&el.getClientRects().length>0;
-const ROOT=new URL('./',document.currentScript.src);   // папка waybill/: від неї рахуємо посилання й sw.js на всіх трьох сторінках
+const ROOT=new URL('./',document.currentScript.src);   // корінь сайту: від нього рахуємо посилання й sw.js на всіх трьох сторінках
 
 /* ---------- захардкоджені дані демо ---------- */
-const KEY='wg-state', D_SAFE=0.65, BASE=new Date(2026,9,28), QTY=240, DEAL_NO='WG-8492';
-const SUP={name:'ТОВ «Підошва»',code:'44556677',iban:'UA469999990000026001234567890',head:'Гнатенко В. С.'};   // IBAN вигаданий: МФО 999999 не існує
-const BUY={name:'ФОП Коваль Олена Петрівна',short:'Олена Коваль',shop:'«Крок»',code:'3123456789'};
+const KEY='targo-state', D_SAFE=0.65, BASE=new Date(2026,9,28), QTY=240, DEAL_NO='TRG-8492';
+const SUP0={name:'ТОВ «Підошва»',code:'44556677',iban:'UA469999990000026001234567890',head:'Гнатенко В. С.'};   // IBAN вигадані: МФО 999999 не існує
+const BUY0={name:'ФОП Коваль Олена Петрівна',short:'Олена Коваль',shop:'«Крок»',code:'3123456789',iban:'UA519999990000026009876543210'};
+let SUP=SUP0,BUY=BUY0;   // ЄДРПОУ/ІПН та IBAN беруться з реєстрації (S.reg, S.breg), назви лишаються демо
 // посилки Олени з післяплатою: eta = день, коли NovaPay виплатить гроші
 const PARCELS=[['20450123456781',22300,4],['20450123456798',18400,5],['20450123456804',16900,5],['20450123456811',15600,6],['20450123456828',14800,6],['20450123456835',14200,7],['20450123456842',13500,10],['20450123456859',12300,12]].map(([n,a,eta])=>({n,a,eta}));
 const TRANSIT=[{src:'Prom',no:'41822',a:12400,en:true},{src:'Rozetka',no:'7731',a:8600,en:true},{src:'Prom',no:'41907',a:5200,en:false},{src:'Rozetka',no:'7745',a:3900,en:true,dispute:true}];
@@ -18,16 +19,16 @@ const OTHERS=[
   {id:'bondar',name:'ФОП Бондар Ігор',shop:'«Стопа»',total:64000,adv:30,cod:42000,k:0.81,transit:6000,orders:96,avg:1450,ret:7.4},
   {id:'tkachuk',name:'ФОП Ткачук Світлана',shop:'«Туфелька»',total:38000,adv:30,cod:51000,k:0.9,transit:4000,orders:230,avg:1200,ret:2.5,stop:'Відкрите провадження в АСВП: рахунки можуть арештувати протягом години'}];
 const OLD=[
-  {no:'WG-8390',buyer:'ФОП Мельник Андрій',code:'2987654321',tr:[{id:'T1',a:16200,due:-20,paid:-20,adv:true},{id:'T2',a:18900,due:-13,paid:-13},{id:'T3',a:18900,due:-1,paid:-1}]},
-  {no:'WG-8455',buyer:'ФОП Бойко Наталія',code:'3011223344',tr:[{id:'T1',a:23484,due:-9,paid:-9,adv:true},{id:'T2',a:27398,due:-2,paid:-2},{id:'T3',a:27398,due:5,paid:null}]}];
+  {no:'TRG-8390',buyer:'ФОП Мельник Андрій',code:'2987654321',tr:[{id:'T1',a:16200,due:-20,paid:-20,adv:true},{id:'T2',a:18900,due:-13,paid:-13},{id:'T3',a:18900,due:-1,paid:-1}]},
+  {no:'TRG-8455',buyer:'ФОП Бойко Наталія',code:'3011223344',tr:[{id:'T1',a:23484,due:-9,paid:-9,adv:true},{id:'T2',a:27398,due:-2,paid:-2},{id:'T3',a:27398,due:5,paid:null}]}];
 const STMT0=[
-  {day:-2,from:'ФОП Бойко Наталія',code:'3011223344',a:27398,p:'Оплата за товар згідно рахунку #WG-8455-T2',m:'WG-8455-T2',by:'id'},
-  {day:-1,from:'ФОП Мельник Андрій',code:'2987654321',a:18900,p:'#WG-8390-T3 оплата за взуття',m:'WG-8390-T3',by:'id'}];
+  {day:-2,from:'ФОП Бойко Наталія',code:'3011223344',a:27398,p:'Оплата за товар згідно рахунку #TRG-8455-T2',m:'TRG-8455-T2',by:'id'},
+  {day:-1,from:'ФОП Мельник Андрій',code:'2987654321',a:18900,p:'#TRG-8390-T3 оплата за взуття',m:'TRG-8390-T3',by:'id'}];
 // надходження, що прийдуть самі, коли в демо минають дні
 const SCHED=[
-  {day:4,from:'ФОП Бойко Наталія',code:'3011223344',a:27398,p:'Оплата #WG-8455-T3, без ПДВ'},
+  {day:4,from:'ФОП Бойко Наталія',code:'3011223344',a:27398,p:'Оплата #TRG-8455-T3, без ПДВ'},
   {day:6,from:'ФОП Гнатюк Роман',code:'3399887766',a:5200,p:'оплата за товар'}];
-const DEF={v:1,day:0,b:'none',src:{},deal:null,snap:null,old:OLD,stmt:STMT0,bot:[],ev:{},done:{},seen:{stmt:STMT0.length,bot:0}};
+const DEF={v:1,reg:null,breg:null,day:0,b:'none',src:{},deal:null,snap:null,old:OLD,stmt:STMT0,bot:[],ev:{},done:{},seen:{stmt:STMT0.length,bot:0}};
 const clone=o=>JSON.parse(JSON.stringify(o));
 let S=load();
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.v===1&&r.s)return r.s}catch(e){}return clone(DEF)}
@@ -63,8 +64,8 @@ const deals=()=>S.old.concat(signed()?[S.deal]:[]);
 function trSt(t){return t.paid!=null?['Сплачено','ok']:S.day>t.due?['Прострочено','crit']:t.due===S.day?['Сьогодні','warn']:['Очікується','grey']}
 // звірка: спершу код траншу в призначенні, інакше ІПН платника й одна відкрита сума, що збігається
 function reconcile(e,list){let hit=null,by='';
-  const m=/WG-(\d+)-T(\d+)/i.exec(e.p||'');
-  if(m){const d=list.find(x=>x.no==='WG-'+m[1]),t=d&&d.tr.find(x=>x.id==='T'+m[2]);if(t&&t.paid==null&&e.a>=t.a-0.005){hit=[d,t];by='id'}}
+  const m=/TRG-(\d+)-T(\d+)/i.exec(e.p||'');
+  if(m){const d=list.find(x=>x.no==='TRG-'+m[1]),t=d&&d.tr.find(x=>x.id==='T'+m[2]);if(t&&t.paid==null&&e.a>=t.a-0.005){hit=[d,t];by='id'}}
   if(!hit){const c=[];list.forEach(d=>{if(d.code===e.code)d.tr.forEach(t=>{if(t.paid==null&&Math.abs(t.a-e.a)<0.005)c.push([d,t])})});if(c.length===1){hit=c[0];by='code'}}
   if(hit){hit[1].paid=e.day;e.m=hit[0].no+'-'+hit[1].id;e.by=by}else e.m=null;
   return hit}
@@ -72,24 +73,41 @@ function nbuQR(a,purpose){   // формат НБУ 002 (кодування 1 = 
   const s=['BCD','002','1','UCT','',SUP.name,SUP.iban,'UAH'+a.toFixed(2),SUP.code,'','',purpose,''].join('\n');
   return 'https://bank.gov.ua/qr/'+btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function ibanOk(s){let m=0;for(const ch of (s.slice(4)+s.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55))m=(m*10+ +ch)%97;return m===1}
+// реквізити з форми реєстрації: ЄДРПОУ 8 цифр (постачальник), ІПН 10 або ЄДРПОУ 8 (ФОП-покупець), IBAN UA + 27 цифр з контрольною сумою
+function reqErr(code,iban,buyer){
+  if(!(buyer?/^(\d{8}|\d{10})$/:/^\d{8}$/).test(code))return buyer?'ІПН має 10 цифр, ЄДРПОУ 8 цифр':'Код ЄДРПОУ має 8 цифр';
+  if(!/^UA\d{27}$/.test(iban))return 'IBAN: UA і 27 цифр';
+  if(!ibanOk(iban))return 'IBAN з помилкою: не сходиться контрольна сума';
+  return ''}
+const clean=s=>s.replace(/\s/g,'').toUpperCase();
+const invite=()=>'targo.demo/i/'+(+SUP.code).toString(36).toUpperCase();   // посилання-запрошення постачальника, одне на всіх його клієнтів
+function syncP(){SUP={...SUP0,...S.reg};BUY={...BUY0,...S.breg}}
 
 /* ---------- дії ---------- */
 let calc={base:120000,adv:30,term:14,parts:2,mk:3},sTab=S.deal?'apps':'new',bTab='pass',sel=null,wz=null,wzg=0,curInv=null,fresh=-1;
 let uiT=[];const ui=(ms,fn)=>uiT.push(setTimeout(fn,ms));
-function makeOffer(){if(S.deal||!(calc.base>=1000&&calc.base<=1e7))return;const p=plan(calc);
-  S.deal={no:DEAL_NO,buyer:BUY.name,code:BUY.code,...calc,total:p.total,credit:p.credit,tr:p.tr.map(t=>({...t,paid:null})),stage:'link',sigS:false,sigB:false,shipped:false};
-  S.b='invite';S.done.offer=true;render();toast('sup','Посилання надіслано Олені в Telegram (імітація)');
-  const T1=p.tr[0];ui(700,()=>pushB('ТОВ «Підошва»',`Пропонуємо розстрочку на ${fmt(p.total)}: ${calc.adv?`${calc.adv}% зараз (${fmt(T1.a)}), решта`:'усе'} за ${calc.term} днів`,openOffer))}
+// реєстрація постачальника: назву й керівника «знаходимо» в ЄДР, реквізити беремо з форми
+function register(code,iban){code=clean(code);iban=clean(iban);const err=reqErr(code,iban);
+  if(err){const el=$('rg-err');if(el){el.textContent=err;el.hidden=false}return}
+  S.reg={code,iban};S.done.reg=true;sTab='new';render();toast('sup',`Реєстрацію завершено. Ваше посилання: ${invite()}`)}
+function makeOffer(ch='Telegram'){if(!S.reg||S.deal||!(calc.base>=1000&&calc.base<=1e7))return;const p=plan(calc);
+  S.deal={no:DEAL_NO,buyer:BUY.name,code:BUY.code,...calc,total:p.total,credit:p.credit,tr:p.tr.map(t=>({...t,paid:null})),stage:'link',sigS:false,sigB:false,shipped:false,ch};
+  S.b='invite';S.done.offer=true;render();toast('sup',`Посилання-запрошення надіслано Олені у ${ch} (імітація)`);
+  const T1=p.tr[0];ui(700,()=>pushB(`${ch} · ${SUP.name}`,`Пропонуємо розстрочку на ${fmt(p.total)}: ${calc.adv?`${calc.adv}% зараз (${fmt(T1.a)}), решта`:'усе'} за ${calc.term} днів. ${invite()}`,openOffer))}
+// ФОП перейшов за запрошенням: свій ІПН/ЄДРПОУ і IBAN
+function buyerId(){const code=clean($('wz-code').value),iban=clean($('wz-iban').value),err=reqErr(code,iban,true);
+  if(err){$('wz-err').textContent=err;$('wz-err').hidden=false;return}
+  S.breg={code,iban};if(S.deal)S.deal.code=code;syncP();save();openWizard('src')}
 function completeCheck(){const d=S.deal;if(!d||S.b==='ok')return;S.src.keycrm=S.src.keycrm||!Object.values(S.src).some(Boolean);
   S.b='ok';S.snap=oSnap(S.day);d.stage='scored';S.done.connect=S.done.score=true;sel='olena';sTab='apps';closeB();render();
   const [l]=LIGHT[score(S.snap,d.credit,d.total).light];toast('sup',`Нова заявка: Олена Коваль, світлофор ${l.toLowerCase()}`)}
 function approve(silent){const d=S.deal;if(!d||d.stage!=='scored'||score(S.snap,d.credit,d.total).light==='red')return;d.stage='approved';S.done.approve=true;render();if(!silent)openDoc('contract')}
 function signS(){const d=S.deal;if(!d||d.stage!=='approved'||d.sigS)return;d.sigS=true;render();openDoc('contract');
-  ui(800,()=>{closeDoc();pushB('WaybillGuarantee',`Договір ${d.no} підписано постачальником. Підпишіть КЕП`,openSign)})}
+  ui(800,()=>{closeDoc();pushB('Targo',`Договір ${d.no} підписано постачальником. Підпишіть КЕП`,openSign)})}
 function signB(){const d=S.deal;if(!d||!d.sigS||d.sigB)return;d.sigB=true;d.stage='signed';S.done.sign=true;
   if(!d.tr[0].adv){d.shipped=true;d.shipDay=S.day}
   bot(S.day,`Договір ${d.no} підписано обома сторонами. Рахунки за графіком у вкладці «Рахунки»: платіть за QR-кодом, код траншу вже в призначенні.`,d.tr[0].id);
-  closeB();render();const t=d.tr[0];pushB('WaybillGuarantee',`Рахунок ${t.adv?'на аванс':t.id} ${fmt(t.a)} готовий`,()=>{setBTab('inv');openInv(t.id)})}
+  closeB();render();const t=d.tr[0];pushB('Targo',`Рахунок ${t.adv?'на аванс':t.id} ${fmt(t.a)} готовий`,()=>{setBTab('inv');openInv(t.id)})}
 function payTr(id){const d=S.deal;if(!signed())return;const t=d.tr.find(x=>x.id===id);if(!t||t.paid!=null)return;
   const e={day:S.day,from:BUY.name,code:BUY.code,a:t.a,p:`Оплата за договором поставки ${d.no}, #${d.no}-${id}, без ПДВ`};
   S.stmt.push(e);reconcile(e,deals());fresh=S.stmt.length-1;
@@ -110,23 +128,35 @@ function advance(n){const b0=S.bot.length;
     if(d===t.due&&!t.dr){t.dr=1;bot(d,`Сьогодні строк ${t.id}. Чернетку платежу на ${fmt(t.a)} уже створено в «Приват24 для бізнесу», лишилось підтвердити (імітація).`,t.id)}
     if(d===t.due+1)bot(d,`Транш ${t.id} прострочено. Постачальник бачить це в дебіторці.`,t.id)}
   if(S.day>=7)S.done.day7=true;render();toast('sup',`Сьогодні ${dFull(S.day)}`);
-  if(S.bot.length>b0){const m=S.bot[S.bot.length-1];pushB('WaybillGuarantee Bot',m.t.length>110?m.t.slice(0,108)+'…':m.t,()=>setBTab('bot'))}}
+  if(S.bot.length>b0){const m=S.bot[S.bot.length-1];pushB('Targo Bot',m.t.length>110?m.t.slice(0,108)+'…':m.t,()=>setBTab('bot'))}}
 
 /* ---------- кабінет постачальника ---------- */
 function setSTab(t){sTab=t;render();$('sbody').scrollTop=0;scrollTo(0,0)}   // у вебверсії прокручується вся сторінка
 function renderSup(){$('s-today').textContent='Сьогодні '+dFull(S.day);
   document.querySelectorAll('[data-stab]').forEach(b=>b.setAttribute('aria-current',b.dataset.stab===sTab?'page':'false'));
-  $('sbody').innerHTML=({new:newHTML,apps:appsHTML,ar:arHTML,stmt:stmtHTML,docs:docsHTML})[sTab]()}
+  $('sbody').innerHTML=S.reg?({new:newHTML,apps:appsHTML,ar:arHTML,stmt:stmtHTML,docs:docsHTML})[sTab]():regHTML()}   // до реєстрації будь-яка вкладка веде на форму
+function regHTML(){return `<div class="col2"><div class="card"><div class="ct">Реєстрація постачальника</div>
+    <p class="small">Додайте реквізити компанії. Назву й керівника підтягнемо з ЄДР (імітація).</p>
+    <label class="field">Код ЄДРПОУ<input id="rg-code" class="req" inputmode="numeric" maxlength="8" autocomplete="off" value="${SUP0.code}"></label>
+    <p class="small" id="rg-found">${edrHTML(SUP0.code)}</p>
+    <label class="field">IBAN, на який платитимуть покупці<input id="rg-iban" class="req" autocomplete="off" spellcheck="false" value="${SUP0.iban}"></label>
+    <p class="hint crit" id="rg-err" role="alert" hidden></p>
+    <button class="btn accent" id="rg-go">Зареєструватися і отримати посилання</button></div>
+  <div class="card"><div class="ct">Як це працює</div><div class="steps3"><div><span>1</span>Реєструєтесь і отримуєте своє посилання-запрошення.</div><div><span>2</span>Надсилаєте його в Telegram чи Viber клієнту, який просить товар у борг.</div><div><span>3</span>Клієнт вводить свій ІПН і IBAN, підключає дані магазину, а ви бачите заявку зі світлофором.</div></div>
+    <p class="note">Демо: будь-який код ЄДРПОУ «знаходить» ${SUP0.name}.</p></div></div>`}
+const edrHTML=c=>/^\d{8}$/.test(c)?`Знайдено в ЄДР: <b>${SUP0.name}</b>, директор ${SUP0.head}`:'Назва з’явиться, коли введете 8 цифр';
 function trList(tr,no,st){return `<div class="trl">${tr.map(t=>{const [l,c]=trSt(t);
   return `<div class="trli"><span><b>${t.adv?'Аванс':'Транш '+t.id}</b><small>${!st&&t.due===0?'сьогодні':'до '+dOf(t.due)}${no?` · #${no}-${t.id}`:''}</small></span><span class="amt">${fmt(t.a)}</span>${st?chip(l,c):'<span></span>'}</div>`}).join('')}</div>`}
 const stageL=d=>({link:['Посилання надіслано','grey'],scored:['Заявка на розгляді','warn'],approved:['Погоджено, підпис','warn'],signed:['Договір підписано','ok']})[d.stage];
 function newHTML(){
   if(S.deal){const d=S.deal,[l,c]=stageL(d);return `<div class="col2"><div class="card"><div class="ct">Посилання для покупця ${chip(l,c)}</div>
-    <div class="linkbox">wg.demo/p/${d.no}</div><p class="small">${BUY.name}, магазин ${BUY.shop}. Надіслано в Telegram (імітація).</p>
+    <div class="linkbox">${invite()}</div><p class="small">${BUY.name}, магазин ${BUY.shop}. Надіслано у ${d.ch||'Telegram'} (імітація).</p>
     <div class="big num">${fmt(d.total)}</div>${trList(d.tr,d.no,d.stage==='signed')}</div>
     <div class="card"><div class="ct">Що далі</div><div class="steps3"><div><span>1</span>Олена підключає дані магазину й отримує ліміт.</div><div><span>2</span>Заявка з’являється в «Заявках» зі світлофором.</div><div><span>3</span>Погоджуєте, підписуєте договір КЕП, гроші приходять траншами.</div></div>
     <p class="note">Нова розстрочка в демо: «Скинути демо».</p></div></div>`}
-  return `<div class="col2"><div class="card">
+  return `<div class="col2"><div style="display:grid;gap:12px"><div class="card"><div class="ct">Ваше посилання-запрошення</div><div class="linkbox">${invite()}</div>
+    <p class="small">Одне на всіх клієнтів. Клієнт відкриває його, вводить свій ІПН і IBAN, і його заявка з’являється в «Заявках».</p></div>
+    <div class="card">
     <div class="ct">Розстрочка замість знижки</div>
     <p class="small">Покупець: <b>${BUY.name}</b>, ${BUY.shop}. Просить знижку 7%.</p>
     <label class="field">Сума накладної, ₴<input id="c-base" data-c="base" inputmode="numeric" value="${calc.base}"></label>
@@ -134,13 +164,14 @@ function newHTML(){
     <div class="frow"><span class="lbl">Строк розстрочки</span><div class="gchips">${[7,14,21,30].map(v=>`<button class="gchip" data-cc="term:${v}" aria-pressed="${calc.term===v}">${v} днів</button>`).join('')}</div></div>
     <div class="frow"><span class="lbl">Платежів після авансу</span><div class="gchips">${[1,2,3].map(v=>`<button class="gchip" data-cc="parts:${v}" aria-pressed="${calc.parts===v}">${v}</button>`).join('')}</div></div>
     <div class="prow"><span>Надбавка за відстрочку, у ціні товару</span><span class="v" data-cv="mk">${calc.mk}%</span><input type="range" min="0" max="10" step="0.5" value="${calc.mk}" data-c="mk" aria-label="Надбавка"></div>
-  </div><div id="calc-prev">${calcPrev()}</div></div>`}
-function calcPrev(){if(!(calc.base>=1000&&calc.base<=1e7))return `<div class="card"><p class="hint crit">Сума накладної від 1 000 до 10 000 000 ₴</p><button class="btn accent" id="mk-link" disabled>Сформувати посилання</button></div>`;
+  </div></div><div id="calc-prev">${calcPrev()}</div></div>`}
+function calcPrev(){if(!(calc.base>=1000&&calc.base<=1e7))return `<div class="card"><p class="hint crit">Сума накладної від 1 000 до 10 000 000 ₴</p><button class="btn accent" id="mk-link" disabled>Надіслати в Telegram</button></div>`;
   const p=plan(calc),disc=Math.round(calc.base*7)/100,mk=Math.round((p.total-calc.base)*100)/100;
   return `<div class="card"><div class="ct">Що отримає покупець</div><div class="big num">${fmt(p.total)}</div>
     <p class="small">з них ${fmt(mk)} за відстрочку, вшито в ціну товару. Відсотків у договорі немає.</p>${trList(p.tr)}
     <div class="cmp"><div>Знижка 7%<b class="neg num">−${fmt(disc)}</b>з вашого прибутку</div><div>Розстрочка<b class="pos num">+${fmt(mk)}</b>гроші за графіком</div></div>
-    <button class="btn accent" id="mk-link">Сформувати посилання для покупця</button></div>`}
+    <p class="small">Надішліть клієнту посилання-запрошення з цією пропозицією:</p>
+    <div class="altrow"><button class="btn accent" id="mk-link">Надіслати в Telegram</button><button class="btn" id="mk-viber">Надіслати у Viber</button></div></div>`}
 function appList(){const L=OTHERS.map(o=>({id:o.id,name:o.name,shop:o.shop,total:o.total,adv:o.adv,credit:o.total*(100-o.adv)/100,x:o,h:o,st:['Нова','grey']}));
   if(S.deal&&S.b==='ok'){const d=S.deal;L.unshift({id:'olena',name:'ФОП Коваль Олена',shop:BUY.shop,total:d.total,adv:d.adv,credit:d.credit,x:S.snap,h:HIST,
     st:({scored:['Нова','grey'],approved:['Погоджено','ok'],signed:['Договір підписано','ok']})[d.stage]})}
@@ -174,7 +205,7 @@ function arHTML(){const rows=[];deals().forEach(d=>d.tr.forEach(t=>rows.push({d,
     <div class="ct">Сплачено</div>${done.map(row).join('')}`}
 function stmtHTML(){return `<p class="note">Рахунок ${SUP.iban}. Виписку читає Opendatabot Автоклієнт (імітація). Звірка: код траншу в призначенні, інакше ІПН і сума.</p>
   ${S.stmt.map((e,i)=>({e,i})).reverse().map(({e,i})=>`<div class="srow${i===fresh?' new':''}"><span class="d">${dOf(e.day)}</span><span><b>${e.from}</b><br><span class="small">ІПН/ЄДРПОУ ${e.code}</span></span><span class="amt in">+${fmt(e.a)}</span>
-    <span class="p">${e.p.replace(/#?WG-\d+-T\d+/i,m=>`<mark>${m}</mark>`)}</span>
+    <span class="p">${e.p.replace(/#?TRG-\d+-T\d+/i,m=>`<mark>${m}</mark>`)}</span>
     ${e.m?chip((e.by==='code'?'Звірено за ІПН: ':'Звірено автоматично: ')+e.m,'ok'):chip('Не розпізнано, перевірте вручну','warn')}</div>`).join('')}`}
 function docsHTML(){const d=S.deal;if(!d||d.stage==='link'||d.stage==='scored')return `<div class="card"><div class="ct">Документи</div><p class="small">Договір, специфікація й видаткова накладна з’являться після того, як ви погодите заявку.</p></div>`;
   const st=d.sigS&&d.sigB?'Підписано обома сторонами (КЕП, імітація)':d.sigS?'Ви підписали, чекає підпису покупця':'Чернетка, чекає вашого підпису';
@@ -216,7 +247,7 @@ function invHTML(){const d=S.deal;if(!signed())return `<div class="card"><div cl
   return d.tr.map(t=>{const [l,c]=trSt(t);return `<button class="invbtn" data-inv="${t.id}"><b>${t.adv?'Аванс':'Транш '+t.id} · ${fmt(t.a)}</b>${chip(l,c)}<small>#${d.no}-${t.id} · до ${dOf(t.due)}</small></button>`}).join('')+
     `<p class="note">Платите напряму постачальнику на IBAN. Платформа гроші не тримає.</p>`}
 function botHTML(){const d=S.deal;
-  return `<div class="bothd"><span class="avatar">WG</span><span><b>WaybillGuarantee Bot</b>Telegram, імітація</span></div>`+
+  return `<div class="bothd"><span class="avatar">T</span><span><b>Targo Bot</b>Telegram, імітація</span></div>`+
     (S.bot.length?S.bot.map(m=>{const t=m.pay&&d&&d.tr.find(x=>x.id===m.pay),pd=t&&t.paid!=null;
       return `<div class="bubble">${m.t}${t?`<button class="botbtn" data-bot-pay="${t.id}"${pd?' disabled':''}>${pd?`${t.id} сплачено`:`Сплатити ${t.id}: ${fmt(t.a)}`}</button>`:''}<span class="w">${dOf(m.d)}</span></div>`}).join('')
      :`<p class="note">Бот напише, коли прийде рахунок або гроші від NovaPay.</p>`)}
@@ -232,7 +263,11 @@ let wzT=[];
 const CHK=[['Реєстри й АСВП','чинність ФОП, єдиний податок, боржники, провадження'],['Історія продажів за 90 днів','замовлення, середній чек, викуп, повернення'],['Гроші в дорозі','ТТН Нової пошти, реєстри NovaPay, оплачені Prom і Rozetka']];
 const SRC=[['keycrm','KC','KeyCRM','замовлення Prom, Rozetka, Instagram і реєстри NovaPay'],['salesdrive','SD','SalesDrive','CRM для інтернет-магазинів'],['rozetka','RZ','Rozetka Seller','замовлення і баланс селера'],['prom','PR','Prom.ua','замовлення і Пром-оплата']];
 function openWizard(step){if(!S.deal)return;hidePush();wz=step;const bar=n=>`<div class="stp">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;
-  if(step==='id')sheetB(`${bar(1)}<h3>Хто ви</h3><label class="field">ІПН<input value="${BUY.code}" readonly></label><p class="small">${BUY.name}. Підтверджено через Дія.Підпис (імітація).</p><button class="btn accent" id="wz-next">Далі</button>`);
+  if(step==='id')sheetB(`${bar(1)}<h3>Хто ви</h3><p class="small">Ви перейшли за запрошенням ${SUP.name}. Вкажіть реквізити свого ФОП.</p>
+    <label class="field">ІПН або ЄДРПОУ<input id="wz-code" class="req" inputmode="numeric" maxlength="10" autocomplete="off" value="${BUY.code}"></label>
+    <label class="field">Ваш IBAN<input id="wz-iban" class="req" autocomplete="off" spellcheck="false" value="${BUY.iban}"></label>
+    <p class="hint crit" id="wz-err" role="alert" hidden></p>
+    <p class="small">${BUY.name}. Особу підтвердимо через Дія.Підпис (імітація).</p><button class="btn accent" id="wz-next">Далі</button>`);
   else if(step==='src'){const any=Object.values(S.src).some(Boolean);
     sheetB(`${bar(2)}<h3>Дані магазину</h3><p class="small">Лише читання: платформа не бачить паролів і не рухає гроші.</p><div>${SRC.map(([k,ic,t,s])=>`<div class="srcrow"><span class="ic">${ic}</span><span><b>${t}</b><small>${S.src[k]?'Підключено, лише читання':s}</small></span><button data-src="${k}" aria-pressed="${!!S.src[k]}">${S.src[k]?'Готово':'Підключити'}</button></div>`).join('')}</div>
       <button class="btn accent" id="wz-check"${any?'':' disabled'}>Перевірити</button>`)}
@@ -251,7 +286,7 @@ function openSign(){const d=S.deal;if(!d)return;hidePush();
     <div class="btncol">${d.sigB?`<button class="btn" disabled>Підписано</button>`:`<button class="btn accent" id="sg-buy">Підписати КЕП (імітація)</button>`}<button class="btn ghost" data-doc="contract">Переглянути договір</button></div>`)}
 function openInv(id){const d=S.deal;if(!signed())return;const t=d.tr.find(x=>x.id===id);if(!t)return;hidePush();curInv=id;const [l,c]=trSt(t),purpose=`Оплата за договором поставки ${d.no}, #${d.no}-${id}, без ПДВ`;
   sheetB(`<h3>Рахунок #${d.no}-${id}</h3><div class="ct"><span class="big num">${fmt(t.a)}</span>${chip(l,c)}</div><p class="small">${t.adv?'Аванс':'Транш'} до ${dFull(t.due)}</p>
-    <div class="qrbox" id="qrbox"></div><p class="note" style="text-align:center">QR за стандартом НБУ. Демо: IBAN вигаданий, не платіть за цим кодом.</p>
+    <div class="qrbox" id="qrbox"></div><p class="note" style="text-align:center">QR за стандартом НБУ. Демо: не платіть за цим кодом.</p>
     <div class="req"><div><span>Отримувач</span>${SUP.name}, ЄДРПОУ ${SUP.code}</div><div><span>IBAN</span>${SUP.iban}</div><div><span>Призначення</span>${purpose}</div></div>
     <div class="btncol">${t.paid!=null?`<button class="btn" disabled>Сплачено ${dOf(t.paid)}</button>`:`<button class="btn accent" id="inv-pay">Оплатити в банку (імітація)</button><button class="btn ghost" id="inv-draft">Чернетка в «Приват24 для бізнесу»</button>`}</div>`);
   const box=$('qrbox'),link=nbuQR(t.a,purpose);
@@ -266,7 +301,7 @@ function closeDoc(){$('ovl').hidden=true;$('ovl').innerHTML=''}
 function contractHTML(d){const price=Math.round(d.total/QTY*100)/100;
   return `<article class="doc"><p class="demo-note">Шаблон для демонстрації. Перед використанням потребує перевірки юристом.</p>
   <h1>ДОГОВІР ПОСТАВКИ ТОВАРУ<br>НА УМОВАХ РОЗСТРОЧЕННЯ ПЛАТЕЖУ № ${d.no}</h1><p class="row2"><span>м. Київ</span><span>${dFull(0)}</span></p>
-  <p>${SUP.name} (код ЄДРПОУ ${SUP.code}), далі «Постачальник», в особі директора ${SUP.head}, з одного боку, та ${BUY.name} (РНОКПП ${BUY.code}), далі «Покупець», з другого боку, уклали цей Договір відповідно до статей 694, 695 і 1057 Цивільного кодексу України.</p>
+  <p>${SUP.name} (код ЄДРПОУ ${SUP.code}), далі «Постачальник», в особі директора ${SUP.head}, з одного боку, та ${BUY.name} (${BUY.code.length===10?'РНОКПП':'код ЄДРПОУ'} ${BUY.code}, IBAN ${BUY.iban}), далі «Покупець», з другого боку, уклали цей Договір відповідно до статей 694, 695 і 1057 Цивільного кодексу України.</p>
   <h2>1. Предмет договору</h2><p>1.1. Постачальник передає у власність Покупця товар за Специфікацією (Додаток 1), а Покупець приймає товар і оплачує його частинами за графіком (продаж товару в кредит із розстроченням платежу).</p>
   <h2>2. Ціна</h2><p>2.1. Загальна вартість товару становить ${fmt(d.total)}, без ПДВ.</p><p>2.2. Ціна товару враховує умови розстрочення. Проценти за користування товарним кредитом не нараховуються.</p>
   <h2>3. Порядок розрахунків</h2><p>3.1. Усі розрахунки за цим Договором Покупець здійснює виключно в безготівковій грошовій формі в гривні шляхом прямого банківського переказу на поточний рахунок Постачальника ${SUP.iban}.</p>
@@ -280,7 +315,7 @@ function contractHTML(d){const price=Math.round(d.total/QTY*100)/100;
     <div><b>Покупець</b><br>${BUY.name}<br><span class="sigst${d.sigB?' ok':''}">${d.sigB?'Підписано КЕП (імітація)':'Очікує підпису'}</span></div></div></article>`}
 function waybillHTML(d){const price=Math.round(d.total/QTY*100)/100;
   return `<article class="doc"><p class="demo-note">Шаблон для демонстрації.</p><h1>ВИДАТКОВА НАКЛАДНА № ВН-${d.no}<br>від ${dFull(d.shipDay)}</h1>
-  <p>Постачальник: ${SUP.name}, ЄДРПОУ ${SUP.code}, IBAN ${SUP.iban}</p><p>Покупець: ${BUY.name}, РНОКПП ${BUY.code}</p><p>Підстава: договір поставки на умовах розстрочення платежу № ${d.no} від ${dFull(0)}</p>
+  <p>Постачальник: ${SUP.name}, ЄДРПОУ ${SUP.code}, IBAN ${SUP.iban}</p><p>Покупець: ${BUY.name}, ${BUY.code.length===10?'РНОКПП':'ЄДРПОУ'} ${BUY.code}, IBAN ${BUY.iban}</p><p>Підстава: договір поставки на умовах розстрочення платежу № ${d.no} від ${dFull(0)}</p>
   <table><tr><th>Товар</th><th class="r">Кількість</th><th class="r">Ціна</th><th class="r">Сума</th></tr><tr><td>Взуття жіноче демісезонне</td><td class="r">${QTY} пар</td><td class="r">${fmt(price)}</td><td class="r">${fmt(d.total)}</td></tr></table>
   <p><b>Разом: ${fmt(d.total)}, без ПДВ.</b> Оплата за графіком Додатка 1 до договору.</p>
   <div class="sigs"><div><b>Відвантажив</b><br>${SUP.name}</div><div><b>Отримав</b><br>${BUY.name}</div></div></article>`}
@@ -289,7 +324,7 @@ function waybillHTML(d){const price=Math.round(d.total/QTY*100)/100;
 let pushT=0;
 function hidePush(){clearTimeout(pushT);const p=$('bpush');if(p)p.remove()}
 function pushB(t,b,go){hidePush();const el=document.createElement('button');el.className='push';el.id='bpush';
-  el.innerHTML=`<span class="pi">WG</span><span><span class="h"><span>${t}</span><span>зараз</span></span><span class="b">${b}</span></span>`;
+  el.innerHTML=`<span class="pi">T</span><span><span class="h"><span>${t}</span><span>зараз</span></span><span class="b">${b}</span></span>`;
   // #pushhost (мобільна, веб) видно в обох ролях; на демо-сторінці пуш живе в телефоні покупця
   el.onclick=()=>{hidePush();role('buy');if(go)go()};($('pushhost')||$('buy')).appendChild(el);pushT=setTimeout(hidePush,8000)}
 function toast(where,msg){const host=$('pushhost')||$(where),old=host.querySelector(':scope>.toast');if(old)old.remove();
@@ -322,17 +357,23 @@ let auto=false,di=-1,showT=[];
 const later=(ms,fn)=>showT.push(setTimeout(fn,ms));
 const clearTimers=()=>{showT.forEach(clearTimeout);showT=[]};
 const hideCursor=()=>$('fcur').classList.remove('on','clk');
-function point(sel,at){later(at,()=>{if(!auto)return;const all=document.querySelectorAll(sel),el=all[all.length-1];if(!el)return;
+// txt: замість кліку «друкуємо» в поле по символу, як людина
+function point(sel,at,txt){later(at,()=>{if(!auto)return;const all=document.querySelectorAll(sel),el=all[all.length-1];if(!el)return;
   const side=el.closest('#sup')?'sup':el.closest('#buy')?'buy':null;if(side&&!visible(el))role(side);
   el.scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
   later(RM?0:250,()=>{if(!auto)return;const r=el.getBoundingClientRect(),c=$('fcur');
     if(r.width){c.classList.add('on');c.style.transform=`translate(${Math.round(r.left+r.width*.6)}px,${Math.round(r.top+r.height*.55)}px)`}
-    later(RM?50:700,()=>{if(!auto)return;c.classList.remove('clk');void c.offsetWidth;c.classList.add('clk');el.click()})})})}
+    later(RM?50:700,()=>{if(!auto)return;c.classList.remove('clk');void c.offsetWidth;c.classList.add('clk');
+      if(txt==null)return el.click();el.focus();el.value='';
+      [...txt].forEach((ch,i)=>later(RM?0:i*45,()=>{if(!auto)return;el.value+=ch;el.dispatchEvent(new Event('input',{bubbles:true}))}))})})})}
 const DEMO=[
-  {k:'offer',  t:'Розстрочка замість знижки', s:'посилання для покупця', d:7000,
+  {k:'reg',    t:'Реєстрація постачальника',  s:'ЄДРПОУ, IBAN, посилання-запрошення', d:9000,
+    fast(){register(SUP0.code,SUP0.iban)}, go(){closeDoc();role('sup');setSTab('new')}, pts:[['#rg-code',800,SUP0.code],['#rg-iban',2400,SUP0.iban],['#rg-go',5400]]},
+  {k:'offer',  t:'Розстрочка замість знижки', s:'запрошення в Telegram', d:7000,
     fast(){makeOffer()}, go(){closeDoc();role('sup');setSTab('new')}, pts:[['#mk-link',1600]]},
-  {k:'connect',t:'Покупець підключає дані',   s:'KeyCRM, лише читання',  d:7000,
-    fast(){S.src.keycrm=true;S.done.connect=true}, go(){role('buy');openOffer()}, pts:[['#of-go',1300],['#wz-next',2700],['[data-src="keycrm"]',4100]]},
+  {k:'connect',t:'Покупець за посиланням',    s:'ІПН, IBAN, KeyCRM лише для читання', d:10000,
+    fast(){S.breg=S.breg||{code:BUY0.code,iban:BUY0.iban};S.src.keycrm=true;S.done.connect=true}, go(){role('buy');openOffer()},
+    pts:[['#of-go',1300],['#wz-code',2600,BUY0.code],['#wz-iban',4000,BUY0.iban],['#wz-next',6200],['[data-src="keycrm"]',7600]]},
   {k:'score',  t:'Перевірка за 60 секунд',    s:'реєстри, історія, гроші в дорозі', d:9000,
     fast(){completeCheck()}, go(){role('buy');if(S.b==='ok'){setBTab('pass')}else openWizard('src')}, pts:[['#wz-check',900],['#wz-send',6200]]},
   {k:'approve',t:'Світлофор постачальника',  s:'зелена заявка і стоп-фактор', d:7000,
@@ -347,8 +388,9 @@ const DEMO=[
     fast(){payTr('T2')}, go(){role('buy');setBTab('bot');if(auto)later(5000,()=>{role('sup');setSTab('ar')})}, pts:[['[data-bot-pay="T2"]',1000],['#inv-pay',2800]]},
 ];
 const CAPS={
-  offer:'Гуртовня «Підошва». Олена просить знижку 7%, а це 8 400 ₴ прибутку. Замість знижки менеджер у два кліки пропонує розстрочку: 30% зараз, решта за 14 днів.',
-  connect:'Олена відкриває посилання на телефоні й підключає KeyCRM лише для читання. Паролів і грошей платформа не бачить.',
+  reg:'Гуртовня «Підошва» реєструється в Targo: код ЄДРПОУ і IBAN. Назву й директора платформа бере з ЄДР, а постачальник отримує своє посилання-запрошення.',
+  offer:'Олена просить знижку 7%, а це 8 400 ₴ прибутку. Замість знижки менеджер у два кліки пропонує розстрочку: 30% зараз, решта за 14 днів, і надсилає запрошення в Telegram.',
+  connect:'Олена відкриває посилання на телефоні, вводить свій ІПН та IBAN і підключає KeyCRM лише для читання. Паролів і грошей платформа не бачить.',
   score:'За хвилину платформа перевіряє реєстри й АСВП, продажі за 90 днів і посилки в дорозі. До покупців Олени вже їде 149 000 ₴, тож ліміт 86 800 ₴.',
   approve:'Постачальник бачить світлофор. У Ткачук відкрите провадження, і система її зупиняє. Олена зелена: погодження одним кліком.',
   sign:'Договір поставки з розстроченням формується сам: лише прямі платежі на IBAN, без цесії й відсотків, щоб обидві сторони лишились на єдиному податку. Підпис КЕП.',
@@ -367,14 +409,14 @@ function runStep(i){clearTimers();hideCursor();hidePush();closeB();
     const bar=$('subs-bar');bar.style.transition='none';bar.style.width=(i/DEMO.length*100)+'%';void bar.offsetWidth;bar.style.transition=RM?'none':`width ${s.d}ms linear`;bar.style.width=`calc(${(i+1)/DEMO.length*100}% - 32px)`;
     later(s.d,()=>{if(i<DEMO.length-1)runStep(i+1);else{hideCursor();auto=false;sb.hidden=true;paintSteps();toast('sup','Показ завершено')}})}   // після останнього кроку показ зупиняється
   else sb.hidden=true;
-  s.go();if(auto)s.pts.forEach(([sel,at])=>point(sel,at));else later(450,()=>flash(s.pts[0][0]));paintSteps()}
+  s.go();if(auto)s.pts.forEach(([sel,at,txt])=>point(sel,at,txt));else later(450,()=>flash(s.pts[0][0]));paintSteps()}
 function setMode(a){auto=a;clearTimers();hideCursor();if(a){document.body.classList.remove('jury');restartDemo()}else{$('subs').hidden=true;paintSteps()}}
 function resetDemo(){S=clone(DEF);uiT.forEach(clearTimeout);uiT=[];sel=null;fresh=-1;calc={base:120000,adv:30,term:14,parts:2,mk:3};sTab='new';bTab='pass';
   closeB();closeDoc();hidePush();role('sup');render();toast('sup','Демо скинуто')}
 function restartDemo(){clearTimers();hideCursor();resetDemo();di=-1;if(auto)later(900,()=>runStep(0));else{$('subs').hidden=true;paintSteps()}}
 
 /* ---------- події ---------- */
-function render(){renderSup();renderBuy();paintSteps();dots();save()}
+function render(){syncP();renderSup();renderBuy();paintSteps();dots();save()}
 document.addEventListener('click',e=>{
   if(e.target.id==='bsheet'&&wz!=='check'){closeB();return}
   if(e.target.id==='ovl'){closeDoc();return}
@@ -390,7 +432,8 @@ document.addEventListener('click',e=>{
   if(ds.role)return role(ds.role);
   if(ds.mode){const a=ds.mode==='auto';if(a!==auto)setMode(a);return}
   if(ds.j!=null){if(auto)return;document.body.classList.remove('jury');return runStep(+ds.j)}
-  const A={'mk-link':makeOffer,'of-open':openOffer,'of-go':()=>openWizard('id'),'wz-next':()=>openWizard('src'),'wz-check':runCheck,'wz-send':completeCheck,
+  const A={'rg-go':()=>register($('rg-code').value,$('rg-iban').value),'mk-link':()=>makeOffer('Telegram'),'mk-viber':()=>makeOffer('Viber'),
+    'of-open':openOffer,'of-go':()=>openWizard('id'),'wz-next':buyerId,'wz-check':runCheck,'wz-send':completeCheck,
     'ap-ok':()=>approve(),'ap-no':()=>toast('sup','У демо відхилення не зберігається'),'ap-adv':()=>toast('sup','Покупцю надіслано пропозицію з більшим авансом (імітація)'),
     'sg-sup':signS,'sg-buy':signB,'inv-pay':()=>payTr(curInv),'inv-draft':()=>toast('buy','Чернетку створено в «Приват24 для бізнесу» (імітація)'),
     'b-close':closeB,'doc-close':closeDoc,'doc-print':()=>print(),reset:()=>auto?restartDemo():resetDemo(),day1:()=>advance(1),day7:()=>advance(7),
@@ -398,7 +441,10 @@ document.addEventListener('click',e=>{
     'p-show':()=>{document.body.classList.remove('nopanel');if(!visible($('presenter')))document.body.classList.add('jury')},
     'jury-open':()=>document.body.classList.toggle('jury')};
   if(A[b.id])A[b.id]()});
-document.addEventListener('input',e=>{const k=e.target.dataset.c;if(!k)return;const v=k==='base'?+e.target.value.replace(/\D/g,''):+e.target.value;calc[k]=v;
+document.addEventListener('input',e=>{const id=e.target.id;
+  if(id==='rg-code')$('rg-found').innerHTML=edrHTML(clean(e.target.value));
+  if(/^(rg|wz)-/.test(id)){const er=$(id.slice(0,2)+'-err');if(er)er.hidden=true}   // помилка ховається, щойно поле правлять
+  const k=e.target.dataset.c;if(!k)return;const v=k==='base'?+e.target.value.replace(/\D/g,''):+e.target.value;calc[k]=v;
   const l=document.querySelector(`[data-cv="${k}"]`);if(l)l.textContent=v+'%';$('calc-prev').innerHTML=calcPrev()});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(!$('ovl').hidden)closeDoc();else if(wz!=='check')closeB();document.body.classList.remove('jury');return}
@@ -412,32 +458,33 @@ function selftest(){const R=[],ok=(n,c)=>R.push((c?'ok   ':'FAIL ')+n);
   const sc=score(oSnap(0),p.credit,p.total);ok('ліміт Олени ≈ 86 866, показ 86 800, зелений',Math.round(sc.raw)===86866&&sc.limit===86800&&sc.light==='green');
   const tk=OTHERS.find(o=>o.stop);ok('АСВП: червоний навіть з кредитом 1 ₴',score(tk,1,tk.total).light==='red');
   const bo=OTHERS.find(o=>o.id==='bondar'),sb=score(bo,bo.total*.7,bo.total);ok('жовтий: рекомендований аванс вкладає кредит у ліміт',sb.light==='yellow'&&bo.total*(100-sb.rec)/100<=sb.limit);
-  const dl=[{no:'WG-1',code:'111',tr:[{id:'T1',a:100,paid:null},{id:'T2',a:200,paid:null}]}];
+  const dl=[{no:'TRG-1',code:'111',tr:[{id:'T1',a:100,paid:null},{id:'T2',a:200,paid:null}]}];
   ok('платіж без коду від незнайомого не закриває транш',!reconcile({day:0,from:'X',code:'999',a:100,p:'оплата за товар'},dl)&&dl[0].tr.every(t=>t.paid==null));
-  ok('недоплата з кодом не закриває транш',!reconcile({day:0,code:'999',a:50,p:'#WG-1-T1'},dl)&&dl[0].tr[0].paid==null);
-  ok('платіж з #WG-1-T2 закриває T2',!!reconcile({day:1,code:'999',a:200,p:'Оплата #WG-1-T2'},dl)&&dl[0].tr[1].paid===1);
-  ok('повторний платіж на сплачений T2 не зараховується вдруге',!reconcile({day:1,code:'999',a:200,p:'#WG-1-T2'},dl));
+  ok('недоплата з кодом не закриває транш',!reconcile({day:0,code:'999',a:50,p:'#TRG-1-T1'},dl)&&dl[0].tr[0].paid==null);
+  ok('платіж з #TRG-1-T2 закриває T2',!!reconcile({day:1,code:'999',a:200,p:'Оплата #TRG-1-T2'},dl)&&dl[0].tr[1].paid===1);
+  ok('повторний платіж на сплачений T2 не зараховується вдруге',!reconcile({day:1,code:'999',a:200,p:'#TRG-1-T2'},dl));
   ok('за ІПН: одна відкрита сума, що збігається',!!reconcile({day:2,code:'111',a:100,p:'за взуття'},dl)&&dl[0].tr[0].paid===2);
-  ok('IBAN демо проходить контроль mod 97',ibanOk(SUP.iban));
-  ok('посилання НБУ: bank.gov.ua/qr/ + base64url',/^https:\/\/bank\.gov\.ua\/qr\/[A-Za-z0-9_-]+$/.test(nbuQR(37080,'тест #WG-8492-T1')));
+  ok('IBAN демо проходить контроль mod 97',ibanOk(SUP0.iban)&&ibanOk(BUY0.iban));
+  ok('реєстрація: демо-реквізити постачальника й покупця приймаються',!reqErr(SUP0.code,SUP0.iban)&&!reqErr(BUY0.code,BUY0.iban,true)&&!reqErr('12345678',BUY0.iban,true));
+  ok('реєстрація: 10 цифр для постачальника, 9 для покупця, IBAN з помилкою відхиляються',!!reqErr('3123456789',SUP0.iban)&&!!reqErr('312345678',BUY0.iban,true)&&!!reqErr(SUP0.code,SUP0.iban.replace(/0$/,'1'))&&!!reqErr(SUP0.code,'UA46999999'));
+  ok('пробіли й малі літери в IBAN не заважають',!reqErr(SUP0.code,clean(' ua46 9999 9900 0002 6001 2345 6789 0')));
+  ok('посилання НБУ: bank.gov.ua/qr/ + base64url',/^https:\/\/bank\.gov\.ua\/qr\/[A-Za-z0-9_-]+$/.test(nbuQR(37080,'тест #TRG-8492-T1')));
   ok('6 посилок, виплачених до 7-го дня, = 102 200 ₴',PARCELS.filter(x=>x.eta<=7).reduce((s,x)=>s+x.a,0)===102200);
-  console.log('[selftest]\n'+R.join('\n'));window.WG_SELFTEST=R;return R}
+  console.log('[selftest]\n'+R.join('\n'));window.TARGO_SELFTEST=R;return R}
 if(/[?&]selftest/.test(location.search))selftest();
 
 /* ---------- панель «Демо для журі»: однакова на всіх сторінках, тому малюємо її тут ---------- */
 const PAGES=[['','Мобільна версія'],['web/','Вебверсія'],['demo/','Демо: обидва кабінети поруч']];
-const here=PAGES.find(([p])=>location.pathname.endsWith('/waybill/'+p)||location.pathname.endsWith('/waybill/'+p+'index.html'));
+const here=PAGES.find(([p])=>{const u=new URL(p,ROOT).pathname;return location.pathname===u||location.pathname===u+'index.html'});
 if($('presenter'))$('presenter').innerHTML=`<div class="ph"><b>Демо для журі</b><button class="linkbtn" id="p-hide">Сховати</button></div>
   <div class="pbox"><h2>Сценарій</h2><div class="jsteps" id="jsteps"></div><button class="linkbtn" id="reset">Скинути демо</button></div>
   <div class="pbox"><h2>Час у демо</h2><div class="daynow" id="daynow"></div>
     <div class="altrow"><button class="btn ghost sm" id="day1">+1 день</button><button class="btn ghost sm" id="day7">+7 днів</button></div>
     <p class="note">Посилки доїжджають до покупців, NovaPay виплачує післяплату, наближаються строки траншів.</p></div>
-  <div class="pbox"><h2>Інші версії</h2>${PAGES.filter(p=>p!==here).map(([p,t])=>`<a class="linkbtn" href="${new URL(p,ROOT).href}">${t}</a>`).join('')}
-    <a class="linkbtn" href="${new URL('../',ROOT).href}">Попередній продукт: «Фінансист»</a>
-    <p class="note">Стан спільний: відкрийте мобільну й вебверсію в сусідніх вікнах, і вони оновлюватимуть одна одну.</p></div>
+  <div class="pbox"><h2>Інші версії</h2>${PAGES.filter(p=>p!==here).map(([p,t])=>`<a class="linkbtn" href="${new URL(p,ROOT).href}">${t}</a>`).join('')}    <p class="note">Стан спільний: відкрийте мобільну й вебверсію в сусідніх вікнах, і вони оновлюватимуть одна одну.</p></div>
   <div class="pbox"><h2>Що імітовано</h2><p class="note">Реєстри, KeyCRM, Нова пошта, банк і КЕП не підключені, усі дані вигадані. IBAN не справжній: не платіть за цим QR-кодом.</p></div>`;
 // інша вкладка змінила стан: перемальовуємо без запису, щоб вкладки не перебивали одна одну
-addEventListener('storage',e=>{if(e.key===KEY){S=load();renderSup();renderBuy();paintSteps();dots()}});
+addEventListener('storage',e=>{if(e.key===KEY){S=load();syncP();renderSup();renderBuy();paintSteps();dots()}});
 
 render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register(new URL('sw.js',ROOT)).catch(()=>{});

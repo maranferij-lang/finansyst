@@ -85,6 +85,7 @@ body.jury .presenter{display:flex!important;position:fixed;left:16px;top:16px;bo
 .kv span:nth-child(even){font-weight:500;text-align:right}
 .field{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
 .field input{font:inherit;font-size:20px;font-weight:600;color:var(--ink);background:var(--surface-2);border:0;border-radius:12px;padding:10px 13px;width:100%}
+.field input.req{font-size:16px;font-family:ui-monospace,Consolas,monospace;font-weight:500;letter-spacing:.01em}
 .gchips{display:flex;flex-wrap:wrap;gap:6px}
 .gchip{border:0;background:var(--surface-2);border-radius:10px;padding:7px 11px;font-size:14px}
 .gchip[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
